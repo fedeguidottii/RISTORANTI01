@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Modalità Cameriere</title>
+    <script>
+        if (localStorage.getItem('waiterAuthToken') !== 'authenticated') {
+            const currentPath = window.location.pathname;
+            const newPath = currentPath.substring(0, currentPath.lastIndexOf('/')) + '/login.html';
+            window.location.href = newPath;
+        }
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="floating-orb"></div>
+    <div class="floating-orb"></div>
+    
+    <header class="glass-card sticky top-0 z-50 p-4">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div id="header-content" class="flex items-center gap-3">
+                <h1 class="text-xl font-semibold">Modalità Cameriere</h1>
+            </div>
+            <nav class="flex gap-2">
+                <button class="nav-link active" onclick="showView('tables')">Tavoli</button>
+                <button class="nav-link" onclick="showView('orders')">Ordini</button>
+            </nav>
+            <button onclick="logout()" class="btn btn-danger">Logout</button>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto p-6">
+        <div class="view-section active" id="tables-view">
+            <div class="stats-grid mb-6">
+                <div class="stat-card">
+                    <div class="stat-label">Tavoli Attivi</div>
+                    <div class="stat-value" id="active-tables-count">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Tavoli Disponibili</div>
+                    <div class="stat-value text-[var(--success)]" id="available-tables-count">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Ordini Attivi</div>
+                    <div class="stat-value text-[var(--warning)]" id="active-orders-count">0</div>
+                </div>
+            </div>
+
+            <div class="glass-card">
+                <div class="p-6 border-b border-[var(--glass-border)]">
+                    <h2 class="text-xl font-semibold">Gestione Tavoli</h2>
+                </div>
+                <div id="tables-container" class="p-6">
+                    <div class="loading-spinner mx-auto"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="view-section hidden" id="orders-view">
+            <div class="glass-card">
+                <div class="p-6 border-b border-[var(--glass-border)]">
+                    <h2 class="text-xl font-semibold">Ordini in Tempo Reale</h2>
+                </div>
+                <div id="orders-container" class="p-6">
+                    <div class="loading-spinner mx-auto"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Activate Table Modal -->
+    <div id="activate-modal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <h3 class="text-xl font-semibold mb-4">Attiva Tavolo - <span id="activate-table-name"></span></h3>
+            <form onsubmit="activateTable(event)">
+                <div class="form-group">
+                    <label class="form-label">Numero di persone</label>
+                    <input type="number" id="guests-count" min="1" max="20" class="form-input" required>
+                </div>
+                <div class="flex gap-3">
+                    <button type="submit" class="btn btn-primary flex-1">Attiva</button>
+                    <button type="button" onclick="closeActivateModal()" class="btn btn-secondary flex-1">Annulla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Cart Details Modal -->
+    <div id="cart-modal" class="modal-backdrop hidden">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold">Carrello - <span id="cart-table-name"></span></h3>
+                <button onclick="closeCartModal()" class="text-[var(--text-light)] hover:text-[var(--text-primary)]">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div id="cart-items-container" class="max-h-96 overflow-y-auto">
+                <div class="loading-spinner mx-auto"></div>
+            </div>
+            <div class="mt-4 pt-4 border-t border-[var(--glass-border)]">
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-lg font-semibold">Totale:</span>
+                    <span class="text-2xl font-bold text-[var(--gold-accent)]" id="cart-total">€0.00</span>
+                </div>
+                <button onclick="closeTable()" class="btn btn-success w-full">Chiudi Conto</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-notification" class="toast"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, doc, addDoc, deleteDoc, updateDoc, query, orderBy, where, setDoc, serverTimestamp, getDoc, writeBatch, runTransaction, getDocs, arrayRemove, arrayUnion, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        const firebaseConfig = {
+          apiKey: "AIzaSyDZlTROHoRLrA4CBJ8H8158EuGFT5uPULc",
+          authDomain: "ristorante-a6740.firebaseapp.com",
+          projectId: "ristorante-a6740",
+          storageBucket: "ristorante-a6740.appspot.com",
+          messagingSenderId: "896803417319",
+          appId: "1:896803417319:web:8f68eb29a547082bf8c642",
+          measurementId: "G-C1P019PEY4"
+        };
+        
+        const docId = localStorage.getItem('docId');
+        const restaurantName = localStorage.getItem('restaurantName');
+        
+        if (!docId) {
+            window.location.href = './login.html';
+        }
+
+        let db;
+        let tablesData = [];
+        let menuData = [];
+        let categoriesData = [];
+        let selectedTableId = null;
+        let cart = [];
+        let readyDishesData = [];
+        let restaurantSettings = {};
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3000);
+        }
+
+        async function initialize() {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            
+            document.getElementById('restaurant-name').textContent = restaurantName || 'Ristorante';
+            
+            onSnapshot(doc(db, "ristoranti", docId), (docSnap) => {
+                if (docSnap.exists()) {
+                    restaurantSettings = docSnap.data().settings || {};
+                }
+            });
+            
+            const tablesRef = collection(db, `ristoranti/${docId}/fixedTables`);
+            onSnapshot(query(tablesRef, orderBy("name", "asc")), (snapshot) => {
+                tablesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderTablesGrid();
+                listenToReadyDishes();
+            });
+            
+            const menuRef = collection(db, `ristoranti/${docId}/menu`);
+            onSnapshot(query(menuRef, where("isAvailable", "==", true), orderBy("order")), (snapshot) => {
+                menuData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderMenu();
+            });
+            
+            const catRef = collection(db, `ristoranti/${docId}/menuCategories`);
+            onSnapshot(query(catRef, orderBy('order')), (snapshot) => {
+                categoriesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderMenu();
+            });
+            
+            document.getElementById('dish-search').addEventListener('input', (e) => {
+                renderMenu(e.target.value.toLowerCase());
+            });
+        }
+
+        function calculateBill(table) {
+            let total = 0;
+            const guests = table.guests || 0;
+            const allItems = [...Object.values(table.orders || {}).flat(), ...(table.orderHistory || [])];
+
+            if (restaurantSettings.ayce?.enabled && guests > 0) {
+                total += (restaurantSettings.ayce.price || 0) * guests;
+                allItems.forEach(item => {
+                    if (item.isExtraCharge) total += (item.price || 0) * (item.quantity || 1);
+                });
+            } else {
+                total = allItems.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 1)), 0);
+            }
+            if (restaurantSettings.coperto?.enabled && guests > 0) {
+                total += (restaurantSettings.coperto.price || 0) * guests;
+            }
+            return total;
+        }
+
+        function renderTablesGrid() {
+            const grid = document.getElementById('tables-grid');
+            grid.innerHTML = '';
+            
+            tablesData.forEach(table => {
+                const isActive = table.status === 'attivo';
+                const cardClass = isActive ? 'table-card table-active' : 'table-card table-available';
+                
+                const card = document.createElement('div');
+                card.className = `${cardClass} p-4 text-center relative`;
+                card.onclick = () => window.selectTable(table.id);
+                
+                let statusInfo = '';
+                let tableStatus = 'Disponibile';
+                let statusClass = 'status-available';
+                
+                if (isActive) {
+                    const activeOrdersCount = Object.values(table.orders || {}).flat().length;
+                    const readyOrdersCount = (table.orderHistory || []).length;
+                    
+                    // Determine table status - exclude "Pagato" status
+                    if (readyOrdersCount > 0) {
+                        tableStatus = 'Attesa conto';
+                        statusClass = 'status-billing';
+                    } else if (activeOrdersCount > 0) {
+                        tableStatus = 'Ordine in preparazione';
+                        statusClass = 'status-preparing';
+                    } else {
+                        tableStatus = 'Attesa ordinazione';
+                        statusClass = 'status-waiting';
+                    }
+                    
+                    statusInfo = `<p class="text-sm mt-2 text-gray-600">Ordini: ${activeOrdersCount} | Pronti: ${readyOrdersCount}</p>`;
+                } else {
+                    statusClass = 'status-available';
+                    tableStatus = 'Disponibile';
+                }
+                
+                card.innerHTML = `
+                    <div class="p-4">
+                        <h3 class="elegant-title text-xl mb-2">${table.name}</h3>
+                        <span class="status-badge ${statusClass}">${tableStatus}</span>
+                        ${statusInfo}
+                    </div>`;
+                
+                grid.appendChild(card);
+            });
+        }
+
+        function listenToReadyDishes() {
+            readyDishesData = [];
+            
+            tablesData.filter(table => table.status === 'attivo').forEach(table => {
+                (table.orderHistory || []).forEach(order => {
+                    readyDishesData.push({ ...order, tableId: table.id, tableName: table.name });
+                });
+            });
+            
+            renderReadyDishes();
+        }
+
+        function renderReadyDishes() {
+            const container = document.getElementById('ready-dishes-container');
+            const notification = document.getElementById('delivery-notification');
+            container.innerHTML = '';
+            
+            if (readyDishesData.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-400 font-semibold">Nessun piatto pronto da consegnare.</p>';
+                notification.classList.add('hidden');
+                return;
+            }
+            
+            notification.classList.remove('hidden');
+            
+            const groupedByTable = readyDishesData.reduce((acc, dish) => {
+                (acc[dish.tableId] = acc[dish.tableId] || { tableName: dish.tableName, dishes: [] }).dishes.push(dish);
+                return acc;
+            }, {});
+            
+            Object.values(groupedByTable).forEach(tableGroup => {
+                const dishesHtml = tableGroup.dishes.map(dish => {
+                    const noteHtml = dish.note ? `<p class="text-sm text-red-400 italic">Nota: ${dish.note}</p>` : '';
+                    return `
+                        <div class="flex justify-between items-center py-2 border-b border-white/10 last:border-b-0">
+                            <div><p class="font-bold">${dish.name} x${dish.quantity}</p>${noteHtml}</div>
+                            <button onclick="window.markAsDelivered('${dish.tableId}', '${dish.cartItemId}')" class="bg-green-500/80 text-dark font-bold py-1 px-3 rounded text-sm hover:bg-green-500 transition">Consegnato</button>
+                        </div>`;
+                }).join('');
+                
+                container.innerHTML += `<div class="order-ready-card elegant-card p-4"><h4 class="elegant-title text-lg mb-3 text-green-400">${tableGroup.tableName} - Pronti!</h4>${dishesHtml}</div>`;
+            });
+        }
+        
+        window.markAsDelivered = async (tableId, cartItemId) => {
+            const tableRef = doc(db, `ristoranti/${docId}/fixedTables`, tableId);
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const tableDoc = await transaction.get(tableRef);
+                    if (!tableDoc.exists()) throw "Tavolo non trovato";
+                    
+                    const history = tableDoc.data().orderHistory || [];
+                    const newHistory = history.filter(item => item.cartItemId !== cartItemId);
+                    
+                    if (newHistory.length < history.length) {
+                        transaction.update(tableRef, { orderHistory: newHistory });
+                    }
+                });
+                showToast('Piatto segnato come consegnato!');
+            } catch (error) {
+                console.error('Error marking as delivered:', error);
+                showToast('Errore nel segnare come consegnato.');
+            }
+        };
+
+        window.selectTable = (tableId) => {
+            selectedTableId = tableId;
+            const table = tablesData.find(t => t.id === tableId);
+            if (!table) return;
+            
+            document.getElementById('view-title').textContent = `Tavolo: ${table.name}`;
+            
+            if (table.status === 'attivo') {
+                // Vai direttamente al menù per creare l'ordine
+                cart = [];
+                renderCart();
+                renderOrderStatus();
+                window.showView('menu-ordering-view');
+            } else {
+                window.activateTable(tableId);
+            }
+        };
+
+        window.activateTable = async (tableId) => {
+            let numGuests = 0;
+            if (restaurantSettings.ayce?.enabled || restaurantSettings.coperto?.enabled) {
+                const guestsStr = prompt("Quante persone si siedono al tavolo?");
+                if (guestsStr === null) return; 
+                numGuests = parseInt(guestsStr, 10);
+                if (isNaN(numGuests) || numGuests <= 0) {
+                    alert("Numero di persone non valido.");
+                    return;
+                }
+            }
+            try {
+                const pin = String(Math.floor(1000 + Math.random() * 9000));
+                await updateDoc(doc(db, `ristoranti/${docId}/fixedTables`, tableId), {
+                    status: 'attivo',
+                    sessionPin: pin,
+                    guests: numGuests,
+                    activatedAt: serverTimestamp(),
+                    cart: [], orders: {}, orderHistory: [], ordersSentCount: 0
+                });
+                showToast('Tavolo attivato con successo!');
+                setTimeout(() => window.selectTable(tableId), 500);
+            } catch (error) {
+                console.error('Error activating table:', error);
+                showToast('Errore nell\'attivazione del tavolo.');
+            }
+        };
+
+
+
+
+
+        window.closeTableFromBill = async () => {
+            if (!confirm(`Sei sicuro di voler chiudere il conto per il tavolo e terminare la sessione? L'azione è irreversibile.`)) return;
+            
+            try {
+                await closeTableSession(selectedTableId);
+                document.getElementById('bill-details-modal').classList.add('hidden');
+                window.showMainView('tavoli-view');
+            } catch (error) {
+                console.error('Error closing table:', error);
+                showToast('Errore nella chiusura del tavolo.');
+            }
+        };
+
+        async function closeTableSession(tableId) {
+             const tableRef = doc(db, `ristoranti/${docId}/fixedTables`, tableId);
+            try {
+                const tableDoc = await getDoc(tableRef);
+                if (!tableDoc.exists()) throw "Tavolo non trovato.";
+                const data = tableDoc.data();
+                
+                const totalAmount = calculateBill(data);
+
+                if (totalAmount > 0 || data.guests > 0) {
+                    await addDoc(collection(db, `ristoranti/${docId}/historicSessions`), {
+                        tableName: data.name,
+                        paidAt: serverTimestamp(),
+                        orders: [...Object.values(data.orders || {}).flat(), ...(data.orderHistory || [])],
+                        totalAmount,
+                        guests: data.guests || 0,
+                    });
+                }
+                await updateDoc(tableRef, { status: 'disponibile', sessionPin: null, cart: [], orders: {}, orderHistory: [], guests: 0, ordersSentCount: 0 });
+                showToast(`Sessione tavolo chiusa.`);
+            } catch (error) {
+                console.error("Errore nella chiusura della sessione:", error);
+                showToast("Errore nella chiusura della sessione.");
+            }
+        };
+
+
+
+        function renderMenu(searchTerm = '') {
+            const container = document.getElementById('menu-container');
+            container.innerHTML = '';
+            
+            if (categoriesData.length === 0 || menuData.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-400">Nessun piatto disponibile.</p>';
+                return;
+            }
+            
+            categoriesData.forEach(category => {
+                const dishesInCategory = menuData.filter(dish => 
+                    dish.category === category.name &&
+                    (!searchTerm || dish.name.toLowerCase().includes(searchTerm) || 
+                     (dish.description && dish.description.toLowerCase().includes(searchTerm)))
+                );
+                
+                if (dishesInCategory.length > 0) {
+                    let categoryHtml = `<h3 class="elegant-title text-lg mb-2 border-b border-white/20 pb-1">${category.name}</h3>`;
+                    dishesInCategory.forEach(dish => {
+                        const photoUrl = dish.photoUrl || 'https://placehold.co/80x80/e2e8f0/475569?text=🍽️';
+                        const allergenHtml = (dish.allergens && dish.allergens.length > 0) ? `<div class="mt-1">${dish.allergens.map(a => `<span class="allergen-tag">${a}</span>`).join('')}</div>` : '';
+                        
+                        let priceHtml = `<span class="font-bold text-blue-400">${(dish.price || 0).toFixed(2)}€</span>`;
+                        if (restaurantSettings.ayce?.enabled) {
+                            priceHtml = dish.isExtraCharge ? `<span class="text-sm bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded-full">+ ${(dish.price || 0).toFixed(2)}€</span>` : `<span class="text-sm text-blue-400">Incluso</span>`;
+                        }
+                        
+                        categoryHtml += `
+                            <div class="dish-card p-3 mb-2 cursor-pointer flex items-center gap-3" onclick="window.showQuantityModal('${dish.id}')">
+                                <img src="${photoUrl}" alt="${dish.name}" class="w-16 h-16 rounded-lg object-cover" onerror="this.src='https://placehold.co/80x80/e2e8f0/475569?text=🍽️'">
+                                <div class="flex-1 min-w-0">
+                                    <h4 class="font-bold truncate">${dish.name}</h4>
+                                    <p class="text-sm text-gray-300 truncate">${dish.description || ''}</p>
+                                    ${allergenHtml}
+                                </div>
+                                <div class="text-right flex-shrink-0">${priceHtml}</div>
+                            </div>`;
+                    });
+                    container.innerHTML += categoryHtml;
+                }
+            });
+            
+            if (container.innerHTML === '') {
+                container.innerHTML = '<p class="text-center text-gray-400">Nessun piatto trovato per la ricerca.</p>';
+            }
+        }
+
+        window.showQuantityModal = (dishId) => {
+            const dish = menuData.find(d => d.id === dishId);
+            if (!dish) return;
+            
+            document.getElementById('modal-dish-name').textContent = dish.name;
+            document.getElementById('modal-quantity').value = 1;
+            document.getElementById('modal-note').value = '';
+            
+            document.getElementById('add-to-cart-btn').onclick = () => {
+                const quantity = parseInt(document.getElementById('modal-quantity').value) || 1;
+                const note = document.getElementById('modal-note').value.trim();
+                addToCart(dish, quantity, note);
+                document.getElementById('quantity-modal').classList.add('hidden');
+            };
+            
+            document.getElementById('quantity-modal').classList.remove('hidden');
+        };
+
+        function addToCart(dish, quantity, note) {
+            cart.push({ ...dish, quantity, note, cartItemId: crypto.randomUUID() });
+            renderCart();
+            showToast(`${dish.name} aggiunto al carrello!`);
+        }
+
+        function renderCart() {
+            const container = document.getElementById('cart-container');
+            const sendButton = document.getElementById('send-order-button');
+            container.innerHTML = '';
+            
+            if (cart.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-400">Carrello vuoto</p>';
+                sendButton.disabled = true;
+                return;
+            }
+            
+            sendButton.disabled = false;
+            
+            cart.forEach((item, index) => {
+                const noteHtml = item.note ? `<p class="text-sm text-red-400 italic">Nota: ${item.note}</p>` : '';
+                container.innerHTML += `
+                    <div class="cart-card p-3">
+                        <div class="flex justify-between items-center">
+                            <div><p class="font-bold">${item.name} x${item.quantity}</p>${noteHtml}</div>
+                            <button onclick="window.removeFromCart(${index})" class="text-red-400 hover:text-red-300 font-bold text-lg">&times;</button>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        window.removeFromCart = (index) => {
+            cart.splice(index, 1);
+            renderCart();
+        };
+
+        window.sendOrder = async () => {
+            if (cart.length === 0) return;
+            const table = tablesData.find(t => t.id === selectedTableId);
+            if (!table || table.status !== 'attivo') { 
+                showToast('Errore: tavolo non attivo o non selezionato.'); 
+                return; 
+            }
+            
+            const waiterUserId = 'cameriere'; 
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const tableRef = doc(db, `ristoranti/${docId}/fixedTables`, selectedTableId);
+                    const tableDoc = await transaction.get(tableRef);
+                    if (!tableDoc.exists()) throw "Tavolo non trovato!";
+                    
+                    const currentOrders = tableDoc.data().orders || {};
+                    const existingWaiterOrders = currentOrders[waiterUserId] || [];
+                    
+                    currentOrders[waiterUserId] = existingWaiterOrders.concat(cart);
+                    
+                    transaction.update(tableRef, {
+                        orders: currentOrders,
+                        ordersSentCount: increment(1)
+                    });
+                });
+                
+                cart = [];
+                renderCart();
+                showToast('Ordine inviato alla cucina!');
+                
+                // Return to main tables view after successful order
+                selectedTableId = null;
+                window.showView('tavoli-view');
+                
+            } catch (error) {
+                console.error('Error sending order:', error);
+                showToast('Errore nell\'invio dell\'ordine.');
+            }
+        };
+
+        function renderOrderStatus() {
+            const container = document.getElementById('order-status-container');
+            const table = tablesData.find(t => t.id === selectedTableId);
+            if (!table) { container.innerHTML = '<p class="text-gray-400">Nessun tavolo selezionato</p>'; return; }
+            
+            const activeOrders = Object.values(table.orders || {}).flat();
+            const completedOrders = table.orderHistory || [];
+            container.innerHTML = '';
+            
+            if (activeOrders.length === 0 && completedOrders.length === 0) {
+                container.innerHTML = '<p class="text-gray-400">Nessun ordine inviato</p>'; return;
+            }
+
+            const allItems = [...activeOrders.map(o => ({...o, isCompleted: false})), ...completedOrders.map(o => ({...o, isCompleted: true}))];
+            
+            allItems.forEach(order => {
+                const noteHtml = order.note ? `<p class="text-sm text-red-400 italic">Nota: ${order.note}</p>` : '';
+                const statusHtml = order.isCompleted 
+                    ? `<span class="text-xs text-green-400 font-bold">Pronto!</span>` 
+                    : `<span class="text-xs text-amber-400 font-bold">In preparazione</span>`;
+
+                container.innerHTML += `
+                    <div class="cart-card p-2">
+                        <div class="flex justify-between items-center">
+                            <div><p class="font-bold text-sm">${order.name} x${order.quantity}</p>${noteHtml}</div>
+                            ${statusHtml}
+                        </div>
+                    </div>`;
+            });
+        }
+
+        window.showView = (viewId) => {
+            document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
+            document.getElementById(viewId)?.classList.add('active');
+            
+            const titles = {
+                'tavoli-view': 'Selezione Tavolo',
+                'ordini-da-consegnare-view': 'Piatti Pronti',
+                'menu-ordering-view': selectedTableId ? `Ordine - ${tablesData.find(t => t.id === selectedTableId)?.name}` : 'Nuovo Ordine'
+            };
+            document.getElementById('view-title').textContent = titles[viewId] || 'Cameriere';
+        };
+
+        window.showMainView = (viewId) => {
+            document.getElementById('nav-tavoli').classList.toggle('active', viewId === 'tavoli-view');
+            document.getElementById('nav-consegna').classList.toggle('active', viewId === 'ordini-da-consegnare-view');
+            
+            // Reset selected table when returning to main view
+            if (viewId === 'tavoli-view') {
+                selectedTableId = null;
+            }
+            
+            window.showView(viewId);
+        };
+
+
+
+        window.markTableAsPaid = async (tableId, tableName) => {
+            if (!confirm(`Segna il tavolo "${tableName}" come pagato e chiudi la sessione?`)) return;
+            
+            try {
+                await closeTableSession(tableId);
+                showToast(`Tavolo ${tableName} segnato come pagato!`);
+                
+                // Return to home view
+                selectedTableId = null;
+                window.showView('tavoli-view');
+            } catch (error) {
+                console.error('Error marking table as paid:', error);
+                showToast('Errore nel segnare il tavolo come pagato.');
+            }
+        };
+
+        window.logout = () => {
+            localStorage.clear();
+            window.location.href = './login.html';
+        };
+
+        document.addEventListener('DOMContentLoaded', initialize);
+    </script>
+</body>
+</html>

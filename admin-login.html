@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Admin Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    <div class="floating-orb"></div>
+    <div class="floating-orb"></div>
+    
+    <div class="w-full max-w-sm glass-card p-8">
+        <h1 class="text-3xl font-bold mb-2 text-center">Pannello Admin</h1>
+        <p class="text-[var(--text-secondary)] mb-6 text-center font-medium">Gestione Ristoranti</p>
+        <div id="error-message" class="hidden toast toast-error mb-4">Password non corretta.</div>
+        <div class="space-y-4">
+            <input type="password" id="password-input" class="w-full glass-input text-center text-lg" placeholder="••••">
+            <button onclick="handleLogin()" class="w-full glass-btn glass-btn-primary text-lg">Accedi</button>
+        </div>
+    </div>
+    
+    <script>
+        const SUPER_ADMIN_PASSWORD = 'superadmin';
+        function handleLogin() {
+            const passwordInput = document.getElementById('password-input');
+            const errorMessage = document.getElementById('error-message');
+            if (passwordInput.value === SUPER_ADMIN_PASSWORD) {
+                localStorage.setItem('superAdminAuthToken', 'authenticated');
+                const currentPath = window.location.pathname;
+                const newPath = currentPath.substring(0, currentPath.lastIndexOf('/')) + '/admin.html';
+                window.location.href = newPath;
+            } else {
+                errorMessage.classList.remove('hidden');
+                passwordInput.value = '';
+            }
+        }
+        document.getElementById('password-input').addEventListener('keyup', e => e.key === 'Enter' && handleLogin());
+    </script>
+</body>
+</html>

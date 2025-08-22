@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ordinazioni Ristorante</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --cream-bg: #FDFCF8;
+            --gold-accent: #C6A969;
+            --light-gray: #EAEAEA;
+            --text-dark: #2A2A2A;
+            --text-light: #666666;
+            --card-bg: rgba(255, 255, 255, 0.9);
+            --card-border: rgba(198, 169, 105, 0.2);
+            --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.08);
+            --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.12);
+        }
+        
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            font-weight: 400;
+            background: var(--cream-bg);
+            min-height: 100vh;
+            color: var(--text-dark);
+            padding-bottom: 120px;
+            position: relative;
+            line-height: 1.6;
+        }
+        
+        .fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .elegant-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 1rem;
+            box-shadow: var(--shadow-soft);
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .elegant-card:hover {
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-2px);
+        }
+        
+        .elegant-input {
+            background: white;
+            border: 2px solid var(--light-gray);
+            border-radius: 0.75rem;
+            color: var(--text-dark);
+            font-weight: 400;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-soft);
+        }
+        
+        .elegant-input:focus {
+            outline: none;
+            border-color: var(--gold-accent);
+            box-shadow: 0 0 0 3px rgba(198, 169, 105, 0.1);
+        }
+        
+        .elegant-input::placeholder {
+            color: var(--text-light);
+        }
+        
+        .elegant-btn {
+            background: var(--gold-accent);
+            border: none;
+            border-radius: 0.75rem;
+            color: white;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-soft);
+        }
+        
+        .elegant-btn:hover {
+            background: #B8985A;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-hover);
+        }
+        
+        .elegant-btn:disabled {
+            background: var(--light-gray) !important;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+            color: var(--text-light) !important;
+        }
+        
+        .nav-button { 
+            transition: all 0.3s ease; 
+            border-top: 3px solid transparent;
+            background: white;
+            font-weight: 600;
+            color: var(--text-light);
+            border-radius: 0.5rem;
+            box-shadow: var(--shadow-soft);
+        }
+        
+        .nav-button.active { 
+            color: white; 
+            border-top-color: var(--gold-accent);
+            background: var(--gold-accent);
+            font-weight: 700;
+        }
+        
+        .allergen-tag { 
+            display: inline-block; 
+            background: rgba(239, 68, 68, 0.1); 
+            color: #dc2626; 
+            font-size: 0.7rem; 
+            font-weight: 500; 
+            padding: 0.125rem 0.5rem; 
+            border-radius: 9999px; 
+            margin-top: 4px; 
+            margin-right: 4px;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+        
+        .special-badge { 
+            background: rgba(198, 169, 105, 0.15); 
+            color: var(--gold-accent); 
+            font-weight: 600; 
+            font-size: 0.7rem; 
+            padding: 2px 8px; 
+            border-radius: 12px; 
+            border: 1px solid rgba(198, 169, 105, 0.3);
+        }
+        
+        .extra-charge-pill { 
+            background: rgba(198, 169, 105, 0.15); 
+            color: var(--gold-accent); 
+            font-size: 0.8rem; 
+            font-weight: 600; 
+            padding: 0.25rem 0.75rem; 
+            border-radius: 9999px;
+            border: 1px solid rgba(198, 169, 105, 0.3);
+        }
+        
+        .dish-card {
+            background: white;
+            border: 1px solid var(--light-gray);
+            border-radius: 1rem;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-soft);
+        }
+        
+        .dish-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--gold-accent);
+            box-shadow: var(--shadow-hover);
+        }
+        
+        .elegant-text {
+            color: var(--text-dark);
+        }
+        
+        .title-text {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-dark);
+        }
+        
+        /* Responsive improvements */
+        @media (max-width: 768px) {
+            .elegant-card {
+                border-radius: 1rem;
+                padding: 1rem !important;
+            }
+            
+            .grid {
+                gap: 1rem !important;
+            }
+            
+            .text-2xl {
+                font-size: 1.5rem !important;
+            }
+            
+            .nav-button {
+                padding: 0.75rem 0.5rem !important;
+                font-size: 0.875rem !important;
+            }
+        }
+        
+        @media (max-width: 640px) {
+            .elegant-card {
+                border-radius: 0.75rem;
+                padding: 0.75rem !important;
+            }
+            
+            .grid-cols-1 {
+                grid-template-columns: 1fr !important;
+            }
+            
+            .p-6 {
+                padding: 0.75rem !important;
+            }
+            
+            .nav-button {
+                padding: 0.5rem 0.25rem !important;
+                font-size: 0.75rem !important;
+            }
+        }
+        
+        .loading-spinner {
+            width: 4rem;
+            height: 4rem;
+            border: 4px solid var(--light-gray);
+            border-top: 4px solid var(--gold-accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error-card {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            border-radius: 1rem;
+            color: #dc2626;
+        }
+        
+        .cart-item {
+            background: white;
+            border: 1px solid var(--light-gray);
+            border-radius: 0.75rem;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-soft);
+        }
+        
+        .cart-item:hover {
+            border-color: var(--gold-accent);
+        }
+        
+        .bottom-nav {
+            background: rgba(253, 252, 248, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid var(--light-gray);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-container" class="max-w-2xl mx-auto p-4 md:p-6">
+        <header class="text-center mb-8 fade-in">
+            <div id="header-content" class="flex justify-center items-center h-24">
+                <h1 class="text-5xl title-text elegant-text">Benvenuto</h1>
+            </div>
+            <p id="table-display" class="hidden text-center text-gray-600 font-bold text-lg mt-2"></p>
+            <div id="order-limit-info" class="hidden text-center bg-amber-100 text-amber-800 font-bold text-sm mt-3 p-2 rounded-lg border border-amber-200"></div>
+        </header>
+
+        <div id="loading-spinner" class="flex flex-col items-center justify-center h-64">
+             <div class="loading-spinner"></div>
+        </div>
+        
+        <div id="error-container" class="hidden error-card p-4 rounded-lg text-center elegant-card">
+            <p id="error-message"></p>
+        </div>
+
+        <section id="pin-section" class="hidden">
+             <div class="elegant-card p-8 text-center fade-in">
+                <h2 class="text-2xl title-text elegant-text mb-4">Codice di Sessione</h2>
+                <p class="text-gray-600 mb-6 font-medium">Inserisci il PIN di 4 cifre per accedere al menù.</p>
+                <input type="number" id="pin-code-input" class="w-full text-center text-lg px-4 py-3 elegant-input transition" placeholder="••••">
+                <button onclick="window.verifyPin()" class="elegant-btn w-full mt-4 text-lg font-semibold py-3">
+                    <span>Accedi al Menù</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline ml-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                </button>
+            </div>
+        </section>
+
+        <main id="main-content" class="hidden space-y-8">
+            <div id="menu-view" class="fade-in space-y-8">
+                <div class="relative">
+                    <input type="search" id="dish-search" placeholder="Cerca un piatto..." class="w-full p-3 pl-10 elegant-input">
+                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" /></svg>
+                </div>
+                <div id="dish-of-the-day-section" class="hidden"></div>
+                <div id="menu-items-container" class="space-y-6"></div>
+            </div>
+            <div id="order-view" class="hidden elegant-card p-6 fade-in">
+                <div id="cart-section">
+                    <h2 class="text-3xl title-text elegant-text mb-4 border-b border-gray-200 pb-4">Il Mio Carrello</h2>
+                    <div id="my-cart-items" class="space-y-4 mb-6"></div>
+                    <button id="send-order-button" onclick="window.openConfirmModal()" class="elegant-btn w-full bg-red-600 hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-semibold py-3">Invia Ordine alla Cucina</button>
+                </div>
+                <div id="order-status-section" class="mt-8">
+                     <h2 class="text-3xl title-text elegant-text mb-4 border-b border-gray-200 pb-4">Ordini Inviati</h2>
+                     <div id="order-status-content" class="space-y-3"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <nav id="bottom-nav" class="hidden fixed bottom-0 left-0 right-0 bottom-nav">
+        <div class="max-w-2xl mx-auto flex justify-around p-2">
+            <button id="nav-menu" onclick="window.showView('menu-view')" class="nav-button active flex-1 font-semibold py-3 px-4 rounded-lg flex items-center justify-center gap-2">Menù</button>
+            <button id="nav-order" onclick="window.showView('order-view')" class="nav-button flex-1 font-semibold py-3 px-4 rounded-lg flex items-center justify-center gap-2">
+                Carrello 
+                <span id="cart-count-badge" class="hidden bg-red-500 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">0</span>
+            </button>
+        </div>
+    </nav>
+
+    <div id="dish-modal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-40 fade-in">
+        <div class="elegant-card shadow-2xl max-w-sm w-full p-6 relative">
+            <button onclick="window.closeModal()" class="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-2xl font-bold">&times;</button>
+            <img id="modal-image" src="" alt="Immagine piatto" class="w-full h-40 object-cover rounded-lg mb-4">
+            <h3 id="modal-title" class="text-2xl title-text elegant-text mb-2"></h3>
+            <p id="modal-description" class="text-gray-600 mb-4 font-medium"></p>
+            <div id="modal-allergens" class="mb-4"></div>
+            <p class="text-xl font-bold mb-4 elegant-text" id="modal-price-container">Prezzo: <span id="modal-price"></span>€</p>
+            <div class="flex items-center mb-4">
+                <label for="modal-quantity" class="mr-4 font-semibold elegant-text">Quantità:</label>
+                <input id="modal-quantity" type="number" min="1" value="1" class="elegant-input px-3 py-2 w-24 text-center">
+            </div>
+            <textarea id="modal-note" class="w-full px-4 py-2 mt-2 elegant-input" placeholder="Aggiungi una nota... (es. senza formaggio)"></textarea>
+            <button id="modal-add-to-cart" class="elegant-btn w-full mt-4 font-semibold py-3">Aggiungi</button>
+        </div>
+    </div>
+    
+    <div id="confirm-order-modal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 fade-in">
+        <div class="elegant-card shadow-2xl max-w-sm w-full p-8 text-center">
+            <h3 class="text-2xl title-text elegant-text mb-4">Conferma Ordine</h3>
+            <p class="text-gray-600 mb-6 font-medium">Stai per inviare tutti gli articoli nel carrello del tavolo alla cucina. Sei sicuro?</p>
+            <div class="grid grid-cols-2 gap-4">
+                <button onclick="window.closeConfirmModal()" class="bg-gray-200 text-gray-700 font-semibold py-3 px-4 rounded-lg hover:bg-gray-300 transition w-full">Annulla</button>
+                <button onclick="window.executeSendOrder()" class="elegant-btn w-full font-semibold py-3">Conferma</button>
+            </div>
+        </div>
+    </div>
+    <div id="toast-notification" class="hidden fixed bottom-24 left-1/2 -translate-x-1/2 elegant-card px-6 py-3 rounded-full shadow-lg z-50 fade-in elegant-text font-medium"></div>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, doc, getDoc, collection, query, where, orderBy, onSnapshot, updateDoc, serverTimestamp, getDocs, arrayUnion, arrayRemove, runTransaction, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyDZlTROHoRLrA4CBJ8H8158EuGFT5uPULc",
+          authDomain: "ristorante-a6740.firebaseapp.com",
+          projectId: "ristorante-a6740",
+          storageBucket: "ristorante-a6740.appspot.com",
+          messagingSenderId: "896803417319",
+          appId: "1:896803417319:web:8f68eb29a547082bf8c642",
+          measurementId: "G-C1P019PEY4"
+        };
+        
+        let db, auth, userId, restaurantDocId, tableId, currentCart = [], menuData = [], categoriesCache = [];
+        let tableUnsubscribe = null;
+        let restaurantSettings = {};
+        let ordersSentCount = 0;
+
+        function showToast(message, type = "info") {
+            const toast = document.getElementById('toast-notification');
+            toast.textContent = message;
+            toast.classList.remove('hidden');
+            if (type === 'error') {
+                toast.style.background = "rgba(239, 68, 68, 0.2)";
+                toast.style.borderColor = "rgba(239, 68, 68, 0.3)";
+            } else {
+                toast.style.background = "rgba(34, 197, 94, 0.2)";
+                toast.style.borderColor = "rgba(34, 197, 94, 0.3)";
+            }
+            setTimeout(() => toast.classList.add('hidden'), 3000);
+        }
+
+        function showError(message) {
+            document.getElementById('loading-spinner').classList.add('hidden');
+            document.getElementById('pin-section').classList.add('hidden');
+            document.getElementById('header-content').classList.add('hidden');
+            document.getElementById('error-message').textContent = message;
+            document.getElementById('error-container').classList.remove('hidden');
+        }
+        
+        async function loadMenuAndListen() {
+            await fetchMenuAndCategories();
+            listenToTable();
+            document.getElementById('loading-spinner').classList.add('hidden');
+            document.getElementById('main-content').classList.remove('hidden');
+            document.getElementById('bottom-nav').classList.remove('hidden');
+            document.getElementById('dish-search').addEventListener('input', (e) => renderMenu(e.target.value));
+            showView('menu-view');
+        }
+
+        async function initialize() {
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                // --- AGGIUNTO: supporto parametri legacy + nuovi ---
+                const customRestaurantId = urlParams.get('id') 
+                    || urlParams.get('restaurantId') 
+                    || urlParams.get('rid');
+                const tableName = urlParams.get('tavolo') 
+                    || urlParams.get('table') 
+                    || urlParams.get('t');
+                const tableIdParam = urlParams.get('tableId') || urlParams.get('tid'); // <--- aggiunto
+                // Accetta se c'è restaurantId e (nome tavolo OR id tavolo)
+                if (!customRestaurantId || (!tableName && !tableIdParam)) {
+                    return showError("Link non valido o incompleto. Scansiona il QR code sul tavolo.");
+                }
+                
+                // Determina l'ID del tavolo
+                if (tableName) {
+                    tableId = tableName.toLowerCase().replace(/\s+/g, '-');
+                } else {
+                    tableId = tableIdParam; // usa direttamente l'id
+                }
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                
+                const q = query(collection(db, "ristoranti"), where("restaurantId", "==", customRestaurantId));
+                const querySnapshot = await getDocs(q);
+                if (querySnapshot.empty) {
+                    return showError("Ristorante non trovato. Controlla il link.");
+                }
+                const restaurantDoc = querySnapshot.docs[0];
+                restaurantDocId = restaurantDoc.id;
+                const restaurantData = restaurantDoc.data();
+                restaurantSettings = restaurantData.settings || {};
+                setupHeader(restaurantData);
+                
+                // Recupera nome tavolo se non fornito nel link
+                let displayTableName = tableName;
+                if (!displayTableName) {
+                    try {
+                        const tSnap = await getDoc(doc(db, `ristoranti/${restaurantDocId}/fixedTables`, tableId));
+                        if (tSnap.exists()) displayTableName = tSnap.data().name || tableId;
+                        else displayTableName = tableId; // fallback
+                    } catch(e) {
+                        displayTableName = tableId;
+                    }
+                }
+                document.getElementById('table-display').textContent = `Tavolo: ${displayTableName}`;
+                document.getElementById('table-display').classList.remove('hidden');
+
+                const isPinValidated = sessionStorage.getItem(`pinValidated-${restaurantDocId}-${tableId}`) === 'true';
+
+                onAuthStateChanged(auth, user => {
+                    if (user) { 
+                        userId = user.uid; 
+                        if (isPinValidated) {
+                            document.getElementById('pin-section').classList.add('hidden');
+                            document.getElementById('loading-spinner').classList.remove('hidden');
+                            loadMenuAndListen();
+                        } else {
+                            document.getElementById('loading-spinner').classList.add('hidden');
+                            document.getElementById('pin-section').classList.remove('hidden');
+                        }
+                    } else { 
+                        signInAnonymously(auth).catch(err => showError("Autenticazione fallita."));
+                    }
+                });
+            } catch (error) { 
+                console.error("Init Error", error); 
+                showError("Impossibile caricare l'applicazione. Il link potrebbe essere incompleto o il tavolo non è attivo.");
+            }
+        }
+
+        function setupHeader(data) {
+            const headerContent = document.getElementById('header-content');
+            if (data.logoUrl && data.logoUrl !== 'null') {
+                headerContent.innerHTML = `<img src="${data.logoUrl}" alt="Logo ${data.nomeRistorante}" class="h-24 object-contain">`;
+            } else if (data.nomeRistorante) {
+                headerContent.innerHTML = `<h1 class="text-5xl title-text elegant-text">${data.nomeRistorante}</h1>`;
+            }
+        }
+
+        window.verifyPin = async () => {
+            const pinInput = document.getElementById('pin-code-input');
+            const pin = pinInput.value.trim();
+            if (pin.length !== 4) return showToast("Il PIN deve essere di 4 cifre.");
+
+            const tableRef = doc(db, `ristoranti/${restaurantDocId}/fixedTables`, tableId);
+            
+            try {
+                const tableSnap = await getDoc(tableRef);
+
+                if (!tableSnap.exists()) {
+                    return showError("Errore interno: Tavolo non trovato. Contatta l'assistenza.");
+                }
+                
+                const tableData = tableSnap.data();
+                
+                if (tableData.status === 'attivo' && String(tableData.sessionPin) === String(pin)) {
+                    sessionStorage.setItem(`pinValidated-${restaurantDocId}-${tableId}`, 'true');
+                    document.getElementById('pin-section').classList.add('hidden');
+                    document.getElementById('loading-spinner').classList.remove('hidden');
+                    await loadMenuAndListen();
+                } else {
+                    showError("PIN non corretto o sessione non attiva. Chiedi al personale.");
+                }
+            } catch (error) {
+                console.error("Errore durante il recupero del tavolo da Firestore:", error);
+                showError("Errore di connessione. Riprova.");
+            }
+        };
+
+        async function fetchMenuAndCategories() {
+            try {
+                const menuQuery = query(
+                    collection(db, `ristoranti/${restaurantDocId}/menu`), 
+                    where("isAvailable", "==", true), 
+                    orderBy("order")
+                );
+                const categoriesQuery = query(collection(db, `ristoranti/${restaurantDocId}/menuCategories`), orderBy("order"));
+
+                const [menuSnap, catSnap] = await Promise.all([getDocs(menuQuery), getDocs(categoriesQuery)]);
+                
+                menuData = menuSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+                categoriesCache = catSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+                
+                renderMenu();
+            } catch (error) { 
+                console.error("Menu loading error:", error);
+                // Fallback to loading without order if field doesn't exist yet
+                try {
+                    const menuQuery = query(collection(db, `ristoranti/${restaurantDocId}/menu`), where("isAvailable", "==", true));
+                    const categoriesQuery = query(collection(db, `ristoranti/${restaurantDocId}/menuCategories`), orderBy("order"));
+
+                    const [menuSnap, catSnap] = await Promise.all([getDocs(menuQuery), getDocs(categoriesQuery)]);
+                    
+                    menuData = menuSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    categoriesCache = catSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    
+                    renderMenu();
+                } catch (fallbackError) {
+                    showError("Impossibile caricare il menù.");
+                }
+            }
+        }
+
+        function renderMenu(searchTerm = '') {
+            const menuContainer = document.getElementById('menu-items');
+            if (!menuContainer) return;
+            
+            menuContainer.innerHTML = '';
+            
+            // Filtra piatti disponibili e categorie attive
+            let availableItems = menuData.filter(item => {
+                const category = categoriesData.find(cat => cat.name === item.category);
+                const categoryActive = !category || category.isActive !== false;
+                return item.isAvailable && categoryActive;
+            });
+            
+            if (searchTerm) {
+                const lowerSearchTerm = searchTerm.toLowerCase();
+                availableItems = availableItems.filter(item => 
+                    item.name.toLowerCase().includes(lowerSearchTerm) || 
+                    (item.description && item.description.toLowerCase().includes(lowerSearchTerm))
+                );
+            }
+            
+            if (availableItems.length === 0) {
+                menuContainer.innerHTML = '<p class="text-center text-gray-500 py-8">Nessun piatto disponibile al momento.</p>';
+                return;
+            }
+            
+            // Raggruppa per categoria
+            const itemsByCategory = {};
+            availableItems.forEach(item => {
+                const category = item.category || 'Altro';
+                if (!itemsByCategory[category]) {
+                    itemsByCategory[category] = [];
+                }
+                itemsByCategory[category].push(item);
+            });
+            
+            // Ordina categorie secondo l'ordine definito nel database
+            const sortedCategories = categoriesData
+                .filter(cat => itemsByCategory[cat.name] && cat.isActive !== false)
+                .sort((a, b) => (a.order || 0) - (b.order || 0))
+                .map(cat => cat.name);
+            
+            // Aggiungi categorie non definite alla fine
+            const otherCategories = Object.keys(itemsByCategory)
+                .filter(catName => !sortedCategories.includes(catName));
+            
+            [...sortedCategories, ...otherCategories].forEach(categoryName => {
+                const categoryItems = itemsByCategory[categoryName];
+                if (!categoryItems || categoryItems.length === 0) return;
+                
+                const categorySection = document.createElement('div');
+                categorySection.className = 'mb-8';
+                
+                const categoryTitle = document.createElement('h2');
+                categoryTitle.className = 'text-2xl font-bold mb-4 text-gray-800 border-b-2 border-gray-200 pb-2';
+                categoryTitle.textContent = categoryName;
+                categorySection.appendChild(categoryTitle);
+                
+                const itemsGrid = document.createElement('div');
+                itemsGrid.className = 'space-y-4';
+                
+                // Ordina i piatti all'interno della categoria per order
+                categoryItems
+                    .sort((a, b) => (a.order || 0) - (b.order || 0))
+                    .forEach(item => {
+                        itemsGrid.innerHTML += createDishHTML(item);
+                    });
+                
+                categorySection.appendChild(itemsGrid);
+                menuContainer.appendChild(categorySection);
+            });
+        }
+        
+        // Aggiungi listener per le categorie
+        let categoriesData = [];
+        
+        function listenToCategories() {
+            const q = query(collection(db, `ristoranti/${restaurantDocId}/menuCategories`), orderBy("order"));
+            onSnapshot(q, (snapshot) => {
+                categoriesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                // Re-render menu quando le categorie cambiano
+                renderMenu(document.getElementById('search-bar')?.value || '');
+            }, (error) => {
+                console.error("Errore nel caricamento delle categorie:", error);
+            });
+        }
+        
+        // Chiama listenToCategories dopo l'inizializzazione di Firebase
+        async function init() {
+            // ...existing initialization code...
+            listenToCategories();
+            // ...existing code...
+        }
+        
+        function createDishHTML(item) {
+            const photoUrl = item.photoUrl || 'https://placehold.co/100x100/e2e8f0/475569?text=Piatto';
+            
+            let allergenHtml = '';
+            if (item.allergens && item.allergens.length > 0) {
+                allergenHtml = `<div class="flex flex-wrap gap-1 mt-1">${item.allergens.map(a => `<span class="allergen-tag">${a}</span>`).join('')}</div>`;
+            }
+
+            let priceHtml = '';
+            if (restaurantSettings.ayce?.enabled) {
+                if (item.isExtraCharge) {
+                    priceHtml = `<span class="extra-charge-pill">+ ${item.price.toFixed(2)}€</span>`;
+                }
+            } else {
+                priceHtml = `<span class="font-bold text-lg text-gray-800">${item.price.toFixed(2)}€</span>`;
+            }
+
+            return `<div class="dish-card flex items-center p-3 gap-4 cursor-pointer hover:shadow-md transition-shadow" onclick="window.showDishDetails('${item.id}')">
+                        <img src="${photoUrl}" alt="Foto di ${item.name}" class="w-20 h-20 rounded-lg object-cover flex-shrink-0" onerror="this.src='https://placehold.co/100x100/e2e8f0/475569?text=Piatto'">
+                        <div class="flex-1">
+                            <h4 class="font-bold text-md elegant-text">${item.name}</h4>
+                            <p class="text-sm text-gray-600 font-medium">${item.description}</p>
+                            ${allergenHtml}
+                        </div>
+                        <div class="text-right">${priceHtml}</div>
+                    </div>`;
+        }
+        
+        window.showDishDetails = (itemId) => {
+            const item = menuData.find(i => i.id === itemId);
+            if (!item) return;
+            document.getElementById('modal-image').src = item.photoUrl || 'https://placehold.co/300x200/e2e8f0/475569?text=Piatto';
+            document.getElementById('modal-title').textContent = item.name;
+            document.getElementById('modal-description').textContent = item.description;
+            
+            const allergensContainer = document.getElementById('modal-allergens');
+            allergensContainer.innerHTML = '';
+            if (item.allergens && item.allergens.length > 0) {
+                let allergenHtml = '<p class="text-sm font-semibold text-red-600 mb-1">Allergeni:</p><div class="flex flex-wrap gap-2">';
+                item.allergens.forEach(allergen => {
+                    allergenHtml += `<span class="allergen-tag">${allergen}</span>`;
+                });
+                allergenHtml += '</div>';
+                allergensContainer.innerHTML = allergenHtml;
+            }
+
+            const modalPriceContainer = document.getElementById('modal-price-container');
+            const modalPriceElement = document.getElementById('modal-price');
+            if (restaurantSettings.ayce?.enabled && !item.isExtraCharge) {
+                 modalPriceContainer.classList.add('hidden');
+            } else {
+                 modalPriceContainer.classList.remove('hidden');
+                 modalPriceElement.textContent = item.price.toFixed(2);
+            }
+           
+            document.getElementById('modal-quantity').value = 1; 
+            document.getElementById('modal-note').value = '';
+            document.getElementById('modal-add-to-cart').onclick = () => {
+                const qty = parseInt(document.getElementById('modal-quantity').value) || 1;
+                const note = document.getElementById('modal-note').value.trim();
+                addToCart(item.id, qty, note);
+            };
+            document.getElementById('dish-modal').classList.remove('hidden');
+        };
+
+        async function addToCart(itemId, quantity = 1, note = '') {
+            const itemDetails = menuData.find(i => i.id === itemId);
+            if (!itemDetails) return;
+
+            const tableDocRef = doc(db, `ristoranti/${restaurantDocId}/fixedTables`, tableId);
+            try {
+                const cartItem = { 
+                    ...itemDetails, 
+                    quantity, 
+                    userId, 
+                    note, 
+                    cartItemId: crypto.randomUUID(),
+                    status: 'nel-carrello'
+                };
+                await updateDoc(tableDocRef, {
+                    cart: arrayUnion(cartItem)
+                });
+                closeModal();
+                showToast("Aggiunto al carrello!");
+            } catch (error) {
+                showToast("Errore nell'aggiunta al carrello.", "error");
+            }
+        };
+
+        function updateCartCount(cart) {
+            const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+            const badge = document.getElementById('cart-count-badge');
+            badge.textContent = totalItems;
+            badge.classList.toggle('hidden', totalItems === 0);
+        }
+
+        function renderCartView(cart = []) {
+            const container = document.getElementById('my-cart-items');
+            container.innerHTML = '';
+
+            if (cart.length === 0) { 
+                container.innerHTML = '<p class="text-center text-gray-500 font-medium">Il carrello è vuoto.</p>'; 
+            } else {
+                cart.forEach(item => {
+                    const noteHtml = item.note ? `<p class="text-sm text-red-600 italic font-medium">Nota: ${item.note}</p>` : '';
+                    container.innerHTML += `
+                        <div class="cart-item p-3">
+                           <div class="flex justify-between items-center">
+                               <div><p class="font-bold elegant-text">${item.name} x${item.quantity}</p>${noteHtml}</div>
+                               <button onclick='window.removeFromCart(${JSON.stringify(item)})' class="text-red-500 font-bold p-1 hover:text-red-700 transition">&times;</button>
+                           </div>
+                        </div>`;
+                });
+            }
+            document.getElementById('send-order-button').disabled = cart.length === 0;
+            updateCartCount(cart);
+        }
+
+        window.removeFromCart = async (itemToRemove) => {
+            const tableDocRef = doc(db, `ristoranti/${restaurantDocId}/fixedTables`, tableId);
+            try {
+                await updateDoc(tableDocRef, {
+                    cart: arrayRemove(itemToRemove)
+                });
+            } catch (error) {
+                showToast("Errore nella rimozione dal carrello.", "error");
+            }
+        };
+
+        window.openConfirmModal = () => {
+             if(currentCart.length > 0) {
+                document.getElementById('confirm-order-modal').classList.remove('hidden');
+             }
+        };
+        window.closeConfirmModal = () => document.getElementById('confirm-order-modal').classList.add('hidden');
+        
+        window.executeSendOrder = async () => {
+            const { ayce } = restaurantSettings;
+            if (ayce?.enabled && ayce?.limitOrders) {
+                const maxOrders = ayce.maxOrders || 1;
+                if (ordersSentCount >= maxOrders) {
+                    showToast("Hai raggiunto il numero massimo di ordinazioni consentite.", "error");
+                    closeConfirmModal();
+                    return;
+                }
+            }
+
+            const tableDocRef = doc(db, `ristoranti/${restaurantDocId}/fixedTables`, tableId);
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const tableDoc = await transaction.get(tableDocRef);
+                    if (!tableDoc.exists()) throw "Tavolo non trovato!";
+                    
+                    const tableData = tableDoc.data();
+                    const cart = tableData.cart || [];
+                    if (cart.length === 0) return;
+
+                    const currentOrders = tableData.orders || {};
+                    if (!currentOrders[userId]) {
+                        currentOrders[userId] = [];
+                    }
+                    currentOrders[userId].push(...cart);
+
+                    transaction.update(tableDocRef, {
+                        orders: currentOrders,
+                        cart: [],
+                        ordersSentCount: increment(1)
+                    });
+                });
+                closeConfirmModal();
+                showToast("Ordine inviato in cucina!");
+            } catch (error) {
+                showToast("Errore durante l'invio dell'ordine.", "error");
+            }
+        };
+
+        function listenToTable() {
+            if (tableUnsubscribe) tableUnsubscribe();
+            tableUnsubscribe = onSnapshot(doc(db, `ristoranti/${restaurantDocId}/fixedTables`, tableId), (docSnap) => {
+                if (!docSnap.exists()) {
+                    showError("Sessione del tavolo terminata o tavolo non trovato.");
+                    if(tableUnsubscribe) tableUnsubscribe();
+                    return;
+                }
+                const data = docSnap.data();
+                if (!data || data.status !== 'attivo') {
+                    showError("Sessione del tavolo non più attiva. Chiedi al personale di riattivarla.");
+                     if(tableUnsubscribe) tableUnsubscribe();
+                    return;
+                }
+
+                currentCart = data.cart || [];
+                ordersSentCount = data.ordersSentCount || 0;
+                renderCartView(currentCart);
+                
+                const { ayce } = restaurantSettings;
+                const orderLimitInfo = document.getElementById('order-limit-info');
+                const sendOrderButton = document.getElementById('send-order-button');
+
+                if (ayce?.enabled && ayce?.limitOrders) {
+                    const maxOrders = ayce.maxOrders || 1;
+                    const remainingOrders = maxOrders - ordersSentCount;
+                    
+                    orderLimitInfo.innerHTML = `Puoi inviare <strong>${remainingOrders > 0 ? remainingOrders : 0}</strong>/${maxOrders} ordinazioni.`;
+                    orderLimitInfo.classList.remove('hidden');
+
+                    if (remainingOrders <= 0) {
+                        sendOrderButton.disabled = true;
+                        sendOrderButton.textContent = "Limite ordinazioni raggiunto";
+                    } else {
+                        sendOrderButton.disabled = currentCart.length === 0;
+                        sendOrderButton.textContent = "Invia Ordine alla Cucina";
+                    }
+                } else {
+                    orderLimitInfo.classList.add('hidden');
+                    sendOrderButton.disabled = currentCart.length === 0;
+                    sendOrderButton.textContent = "Invia Ordine alla Cucina";
+                }
+            });
+        }
+        
+        // Add function to listen to categories
+        function listenToCategories() {
+            if (categoriesUnsubscribe) categoriesUnsubscribe();
+            categoriesUnsubscribe = onSnapshot(
+                query(collection(db, `ristoranti/${restaurantDocId}/menuCategories`), orderBy("order")), 
+                (snapshot) => {
+                    categoriesCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    // Re-render menu to update category order
+                    if (menuCache.length > 0) {
+                        renderMenu();
+                    }
+                }
+            );
+        }
+        
+        // Update renderMenu function to respect category order and active state
+        function renderMenu() {
+            const menuContainer = document.getElementById('menu-container');
+            menuContainer.innerHTML = '';
+            
+            // Group dishes by category
+            const dishesByCategory = {};
+            menuCache.forEach(dish => {
+                if (!dish.isAvailable) return;
+                const category = dish.category || 'Altri';
+                if (!dishesByCategory[category]) {
+                    dishesByCategory[category] = [];
+                }
+                dishesByCategory[category].push(dish);
+            });
+            
+            // Get active categories in order
+            const activeCategories = categoriesCache
+                .filter(cat => cat.isActive !== false)
+                .map(cat => cat.name);
+            
+            // Render categories in order
+            activeCategories.forEach(categoryName => {
+                if (dishesByCategory[categoryName]) {
+                    renderCategory(categoryName, dishesByCategory[categoryName]);
+                }
+            });
+            
+            // Render uncategorized dishes or dishes from inactive categories last
+            Object.keys(dishesByCategory).forEach(categoryName => {
+                if (!activeCategories.includes(categoryName)) {
+                    // Skip dishes from inactive categories
+                    const category = categoriesCache.find(c => c.name === categoryName);
+                    if (category && category.isActive === false) return;
+                    
+                    // Render "Altri" or uncategorized dishes
+                    renderCategory(categoryName, dishesByCategory[categoryName]);
+                }
+            });
+        }
+        
+        // Call listenToCategories after Firebase initialization
+        // (add this to the initialization sequence where other listeners are set up)
+        
+        window.closeModal = () => document.getElementById('dish-modal').classList.add('hidden');
+        window.showView = (viewId) => {
+            ['menu-view', 'order-view'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.add('hidden');
+            });
+            document.getElementById(viewId)?.classList.remove('hidden');
+            
+            const navMenu = document.getElementById('nav-menu');
+            const navOrder = document.getElementById('nav-order');
+            navMenu.classList.toggle('active', viewId === 'menu-view');
+            navOrder.classList.toggle('active', viewId === 'order-view');
+        };
+        
+        document.addEventListener('DOMContentLoaded', initialize);
+    </script>
+</body>
+</html>

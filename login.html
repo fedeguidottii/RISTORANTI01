@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accesso - Gestionale Ristorante</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    <div class="floating-orb"></div>
+    <div class="floating-orb"></div>
+    
+    <div class="container max-w-md">
+        <div class="glass-card p-8 slide-up">
+            <div class="text-center mb-8">
+                <div class="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[var(--gold-accent)] to-[var(--gold-hover)] flex items-center justify-center text-white text-3xl shadow-lg">
+                    🍽️
+                </div>
+                <h1 class="text-2xl font-bold bg-gradient-to-r from-[var(--gold-accent)] to-[var(--gold-hover)] bg-clip-text text-transparent">
+                    Accesso Sistema
+                </h1>
+                <p class="text-sm text-[var(--text-secondary)] mt-2">Gestionale Ristorante</p>
+            </div>
+            
+            <div id="unified-login-form">
+                <div id="login-error" class="hidden toast toast-error my-4"></div>
+                <form onsubmit="handleUnifiedLogin(); return false;" class="space-y-4 text-left">
+                    <div class="form-group">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" id="username" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password" class="form-label">Password</label>
+                        <div class="relative">
+                            <input type="password" id="password" class="form-input pr-10" required>
+                            <button type="button" class="absolute inset-y-0 right-0 flex items-center px-3 text-[var(--text-light)] hover:text-[var(--gold-accent)]" onclick="togglePasswordVisibility('password', this)">
+                                <svg class="h-5 w-5 eye-open" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                <svg class="h-5 w-5 eye-closed hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full glass-btn glass-btn-primary mt-2 py-3 text-lg">Accedi</button>
+                    <p class="text-center mt-4 text-sm text-[var(--text-secondary)]">
+                        <a href="#" onclick="showForgotPasswordModal(event)" class="text-[var(--gold-accent)] hover:text-[var(--gold-hover)] font-medium">
+                            Username o password dimenticati?
+                        </a>
+                    </p>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Forgot Password Modal -->
+    <div id="forgot-password-modal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <button onclick="closeForgotPasswordModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+            
+            <!-- Step 1: Choose what to recover -->
+            <div id="forgot-step-1" class="text-center">
+                <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">Cosa hai dimenticato?</h2>
+                <p class="text-gray-600 mb-6">Seleziona cosa desideri recuperare</p>
+                
+                <div class="space-y-3">
+                    <button onclick="selectForgotType('username')" class="w-full py-3 px-4 border-2 border-gray-200 rounded-lg hover:border-[#C6A969] hover:bg-amber-50 transition text-gray-700 font-medium">
+                        <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                        </svg>
+                        Username
+                    </button>
+                    <button onclick="selectForgotType('password')" class="w-full py-3 px-4 border-2 border-gray-200 rounded-lg hover:border-[#C6A969] hover:bg-amber-50 transition text-gray-700 font-medium">
+                        <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                        </svg>
+                        Password
+                    </button>
+                </div>
+                
+                <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+                    <p class="text-sm text-blue-800">
+                        <strong>Sei un cameriere?</strong><br>
+                        Per motivi di sicurezza, i camerieri devono rivolgersi al gestore del ristorante per recuperare le credenziali.
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Step 2: Enter credentials -->
+            <div id="forgot-step-2" class="hidden">
+                <div class="text-center mb-6">
+                    <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" id="forgot-icon">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                        </svg>
+                    </div>
+                    <h2 class="text-2xl font-bold text-gray-800" id="forgot-title">Recupera Password</h2>
+                    <p class="text-gray-600 mt-2" id="forgot-description">Inserisci il tuo username</p>
+                </div>
+                
+                <form onsubmit="handleForgotPassword(event)">
+                    <input type="hidden" id="forgot-type" value="">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2" id="forgot-label">Username</label>
+                        <input type="text" id="forgot-input" class="w-full px-4 py-3 elegant-input" required>
+                    </div>
+                    
+                    <button type="submit" class="w-full elegant-btn py-3">Invia istruzioni</button>
+                    <button type="button" onclick="backToStep1()" class="w-full mt-3 py-2 text-gray-600 hover:text-gray-800 transition">
+                        ← Indietro
+                    </button>
+                </form>
+            </div>
+            
+            <!-- Success message -->
+            <div id="forgot-password-success" class="hidden">
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">Email inviata!</h3>
+                    <p class="text-gray-600 text-sm mb-4" id="success-message"></p>
+                    <button onclick="closeForgotPasswordModal()" class="elegant-btn py-2 px-6">Chiudi</button>
+                </div>
+            </div>
+            
+            <!-- Error message -->
+            <div id="forgot-password-error" class="hidden">
+                <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
+                    <p class="font-medium">Errore</p>
+                    <p class="text-sm" id="forgot-password-error-message"></p>
+                </div>
+                <button type="button" onclick="backToStep1()" class="w-full py-2 text-gray-600 hover:text-gray-800 transition">
+                    ← Riprova
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CORREZIONE QUI ---
+        const backendUrl = 'https://upload-beckend.onrender.com';
+
+        // Password visibility toggle function
+        function togglePasswordVisibility(fieldId, button) {
+            const field = document.getElementById(fieldId);
+            const eyeOpen = button.querySelector('.eye-open');
+            const eyeClosed = button.querySelector('.eye-closed');
+            
+            if (field.type === 'password') {
+                field.type = 'text';
+                eyeOpen.classList.add('hidden');
+                eyeClosed.classList.remove('hidden');
+            } else {
+                field.type = 'password';
+                eyeOpen.classList.remove('hidden');
+                eyeClosed.classList.add('hidden');
+            }
+        }
+
+        // Enhanced login function with retry logic and better error handling
+        async function handleUnifiedLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorMessage = document.getElementById('login-error');
+            errorMessage.classList.add('hidden');
+
+            if (!username || !password) {
+                errorMessage.textContent = 'Per favore, inserisci username e password.';
+                errorMessage.classList.remove('hidden');
+                return;
+            }
+
+            // Show loading state
+            const submitButton = document.querySelector('button[type="submit"]');
+            const originalText = submitButton.textContent;
+            submitButton.textContent = 'Accesso in corso...';
+            submitButton.disabled = true;
+
+            try {
+                // Try waiter login first
+                const waiterResult = await attemptLoginWithRetry('waiter', username, password);
+                
+                if (waiterResult.success) {
+                    // Waiter login successful
+                    localStorage.setItem('dashboardAuthToken', 'authenticated');
+                    localStorage.setItem('docId', waiterResult.docId);
+                    localStorage.setItem('restaurantId', waiterResult.restaurantId);
+                    localStorage.setItem('restaurantName', waiterResult.nomeRistorante);
+                    localStorage.setItem('restaurantLogo', waiterResult.logoUrl || '');
+                    localStorage.setItem('userType', 'waiter');
+                    window.location.href = './waiter.html';
+                    return;
+                }
+                
+                // If waiter login failed, try restaurant owner login
+                const ownerResult = await attemptLoginWithRetry('restaurant', username, password);
+                
+                if (ownerResult.success) {
+                    // Restaurant owner login successful
+                    localStorage.setItem('dashboardAuthToken', 'authenticated');
+                    localStorage.setItem('docId', ownerResult.docId);
+                    localStorage.setItem('restaurantId', ownerResult.restaurantId);
+                    localStorage.setItem('restaurantName', ownerResult.nomeRistorante);
+                    localStorage.setItem('restaurantLogo', ownerResult.logoUrl || '');
+                    localStorage.setItem('userType', 'owner');
+                    window.location.href = './dashboard.html';
+                    return;
+                }
+                
+                // Both login attempts failed
+                errorMessage.textContent = 'Credenziali non valide. Verifica username e password.';
+                errorMessage.classList.remove('hidden');
+                
+            } catch (error) {
+                console.error('Login error:', error);
+                
+                let userMessage = 'Errore di connessione. Riprova più tardi.';
+                if (error.name === 'AbortError') {
+                    userMessage = 'Timeout della richiesta. Il server potrebbe essere sovraccarico.';
+                } else if (error.message && error.message.includes('fetch')) {
+                    userMessage = 'Problema di connessione di rete. Controlla la tua connessione internet.';
+                }
+                
+                errorMessage.textContent = userMessage;
+                errorMessage.classList.remove('hidden');
+            } finally {
+                // Restore button state
+                submitButton.textContent = originalText;
+                submitButton.disabled = false;
+            }
+        }
+
+        // Enhanced login attempt with retry logic and proper timeout handling
+        async function attemptLoginWithRetry(type, username, password, maxRetries = 2) {
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                    const controller = new AbortController();
+                    
+                    // Set a longer timeout for login requests (20 seconds)
+                    const timeoutId = setTimeout(() => {
+                        console.log(`${type} login attempt ${attempt} timed out`);
+                        controller.abort();
+                    }, 20000);
+                    
+                    let endpoint, payload;
+                    
+                    if (type === 'waiter') {
+                        endpoint = '/waiter-login-simple';
+                        payload = { username, password };
+                    } else {
+                        endpoint = '/login';
+                        payload = { username, password };
+                    }
+                    
+                    console.log(`Attempting ${type} login (attempt ${attempt}/${maxRetries})`);
+                    
+                    const response = await fetch(`${backendUrl}${endpoint}`, {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify(payload),
+                        signal: controller.signal
+                    });
+                    
+                    // Clear timeout if request completes
+                    clearTimeout(timeoutId);
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+                        console.log(`${type} login attempt ${attempt} failed:`, response.status, errorData.error);
+                        return { success: false, error: errorData.error || `HTTP ${response.status}` };
+                    }
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        console.log(`${type} login successful`);
+                        return data;
+                    } else {
+                        console.log(`${type} login attempt ${attempt} failed:`, data.error);
+                        return { success: false, error: data.error || 'Login failed' };
+                    }
+                    
+                } catch (error) {
+                    console.warn(`${type} login attempt ${attempt} failed:`, error.name, error.message);
+                    
+                    // If this is the last attempt, throw the error
+                    if (attempt === maxRetries) {
+                        throw error;
+                    }
+                    
+                    // Wait before retry with exponential backoff
+                    const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+                    console.log(`Waiting ${delay}ms before retry...`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+        }
+
+        // Forgot password modal functions
+        function showForgotPasswordModal(event) {
+            event.preventDefault();
+            document.getElementById('forgot-password-modal').classList.remove('hidden');
+            // Reset to step 1
+            document.getElementById('forgot-step-1').classList.remove('hidden');
+            document.getElementById('forgot-step-2').classList.add('hidden');
+            document.getElementById('forgot-password-success').classList.add('hidden');
+            document.getElementById('forgot-password-error').classList.add('hidden');
+        }
+
+        function closeForgotPasswordModal() {
+            document.getElementById('forgot-password-modal').classList.add('hidden');
+        }
+
+        function selectForgotType(type) {
+            document.getElementById('forgot-step-1').classList.add('hidden');
+            document.getElementById('forgot-step-2').classList.remove('hidden');
+            document.getElementById('forgot-type').value = type;
+            
+            const icon = document.getElementById('forgot-icon');
+            const title = document.getElementById('forgot-title');
+            const description = document.getElementById('forgot-description');
+            const label = document.getElementById('forgot-label');
+            const input = document.getElementById('forgot-input');
+            
+            if (type === 'username') {
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>';
+                title.textContent = 'Recupera Username';
+                description.textContent = 'Inserisci la tua email per ricevere lo username';
+                label.textContent = 'Email';
+                input.placeholder = 'La tua email';
+                input.type = 'email';
+            } else {
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>';
+                title.textContent = 'Recupera Password';
+                description.textContent = 'Inserisci il tuo username';
+                label.textContent = 'Username';
+                input.placeholder = 'Il tuo username';
+                input.type = 'text';
+            }
+            
+            input.focus();
+        }
+
+        function backToStep1() {
+            document.getElementById('forgot-step-2').classList.add('hidden');
+            document.getElementById('forgot-password-error').classList.add('hidden');
+            document.getElementById('forgot-step-1').classList.remove('hidden');
+        }
+
+        async function handleForgotPassword(event) {
+            event.preventDefault();
+            
+            const type = document.getElementById('forgot-type').value;
+            const input = document.getElementById('forgot-input').value.trim();
+            const submitButton = event.target.querySelector('button[type="submit"]');
+            const errorDiv = document.getElementById('forgot-password-error');
+            const successDiv = document.getElementById('forgot-password-success');
+            
+            if (!input) {
+                showForgotError('Per favore, inserisci il campo richiesto.');
+                return;
+            }
+            
+            // Show loading state
+            const originalText = submitButton.textContent;
+            submitButton.textContent = 'Invio in corso...';
+            submitButton.disabled = true;
+            
+            // Hide previous messages
+            errorDiv.classList.add('hidden');
+            successDiv.classList.add('hidden');
+            
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000);
+                
+                let endpoint, payload;
+                
+                if (type === 'username') {
+                    endpoint = '/forgot-username';
+                    payload = { email: input };
+                } else {
+                    endpoint = '/forgot-password';
+                    payload = { username: input };
+                }
+                
+                const response = await fetch(`${backendUrl}${endpoint}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    // Hide step 2 and show success
+                    document.getElementById('forgot-step-2').classList.add('hidden');
+                    successDiv.classList.remove('hidden');
+                    
+                    const successMessage = document.getElementById('success-message');
+                    if (type === 'username') {
+                        successMessage.textContent = `Lo username è stato inviato all'email ${input}`;
+                    } else {
+                        const masked = data.maskedEmail ? ` (${data.maskedEmail})` : '';
+                        successMessage.textContent = `Le istruzioni per il reset della password sono state inviate all'email associata all'account${masked}.`;
+                    }
+                } else {
+                    showForgotError(data.error || 'Errore durante l\'invio. Riprova più tardi.');
+                }
+                
+            } catch (error) {
+                console.error('Forgot password error:', error);
+                if (error.name === 'AbortError') {
+                    showForgotError('Timeout della richiesta. Riprova.');
+                } else {
+                    showForgotError('Errore di connessione. Verifica la tua connessione internet.');
+                }
+            } finally {
+                // Restore button state
+                submitButton.textContent = originalText;
+                submitButton.disabled = false;
+            }
+        }
+
+        function showForgotError(message) {
+            const errorDiv = document.getElementById('forgot-password-error');
+            errorDiv.querySelector('div').textContent = message;
+            errorDiv.classList.remove('hidden');
+        }
+
+        // Auto-submit on Enter key
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.querySelector('#unified-login-form form');
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    handleUnifiedLogin();
+                });
+            }
+            
+            // Add Enter key support for input fields
+            const usernameInput = document.getElementById('username');
+            const passwordInput = document.getElementById('password');
+            
+            if (usernameInput) {
+                usernameInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleUnifiedLogin();
+                    }
+                });
+            }
+            
+            if (passwordInput) {
+                passwordInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleUnifiedLogin();
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

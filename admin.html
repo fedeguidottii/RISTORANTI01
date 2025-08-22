@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pannello Gestione Ristoranti</title>
+    <script>
+        if (localStorage.getItem('superAdminAuthToken') !== 'authenticated') {
+            const currentPath = window.location.pathname;
+            const newPath = currentPath.substring(0, currentPath.lastIndexOf('/')) + '/admin-login.html';
+            window.location.href = newPath;
+        }
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="floating-orb"></div>
+    <div class="floating-orb"></div>
+    
+    <!-- Header -->
+    <header class="glass-card sticky top-0 z-100 p-4">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold bg-gradient-to-r from-[var(--gold-accent)] to-[var(--silver-accent)] bg-clip-text text-transparent">
+                Admin Panel
+            </h1>
+            <nav class="flex gap-2">
+                <a href="#ristoranti" onclick="showView('ristoranti')" class="nav-link active">Ristoranti</a>
+                <a href="#statistiche" onclick="showView('statistiche')" class="nav-link">Statistiche</a>
+                <a href="#utilizzo" onclick="showView('utilizzo')" class="nav-link">Utilizzo</a>
+            </nav>
+            <button onclick="window.logout()" class="btn btn-secondary">
+                Logout
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container max-w-7xl mx-auto p-6">
+        <!-- Ristoranti Section -->
+        <section id="ristoranti" class="view-section active">
+            <div class="glass-card p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-4">Nuovo Ristorante</h2>
+                <form id="add-resto-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <input name="nomeRistorante" placeholder="Nome Ristorante" class="form-input" required>
+                    <input name="username" placeholder="Username" class="form-input" required>
+                    <input name="password" type="password" placeholder="Password" class="form-input" required>
+                    <input name="email" type="email" placeholder="Email" class="form-input" required>
+                    <input name="logo" type="file" accept="image/*" class="form-input">
+                    <button type="submit" class="btn btn-primary">Aggiungi</button>
+                </form>
+            </div>
+            
+            <div class="glass-card">
+                <div class="p-6 border-b border-[var(--glass-border)]">
+                    <h2 class="text-xl font-semibold">Ristoranti Registrati</h2>
+                </div>
+                <div id="restaurants-list"></div>
+            </div>
+        </section>
+        
+        <!-- Statistiche Section -->
+        <section id="statistiche" class="view-section hidden">
+            <div class="glass-card p-6 mb-6">
+                <div class="flex gap-2 bg-[var(--glass-white)] p-1 rounded-lg mb-4">
+                    <button class="tab-btn active" onclick="setStatsDateFilter(0)">Oggi</button>
+                    <button class="tab-btn" onclick="setStatsDateFilter(1)">Ieri</button>
+                    <button class="tab-btn" onclick="setStatsDateFilter(7)">7 giorni</button>
+                    <button class="tab-btn" onclick="setStatsDateFilter(30)">30 giorni</button>
+                    <button class="tab-btn" onclick="setStatsDateFilter(90)">90 giorni</button>
+                </div>
+                <div class="flex flex-wrap items-center gap-4">
+                    <label class="font-medium">Da:</label>
+                    <input type="date" id="stats-start-date" class="form-input" style="max-width: 150px;">
+                    <label class="font-medium">A:</label>
+                    <input type="date" id="stats-end-date" class="form-input" style="max-width: 150px;">
+                    <button onclick="fetchAndRenderAnalytics()" class="btn btn-primary">Applica</button>
+                </div>
+            </div>
+            
+            <div class="stats-grid" id="analytics-content"></div>
+            
+            <div id="analytics-loading" class="empty-state">
+                <div class="loading-spinner mx-auto"></div>
+                <p class="mt-4">Caricamento statistiche...</p>
+            </div>
+        </section>
+
+        <!-- Utilizzo Section -->
+        <section id="utilizzo" class="view-section hidden">
+            <div class="glass-card p-6">
+                <h2 class="text-xl font-semibold mb-4">Utilizzo Cloudinary</h2>
+                <div id="usage-content"></div>
+                <div id="usage-loading" class="empty-state">
+                    <div class="loading-spinner mx-auto"></div>
+                    <p class="mt-4">Caricamento dati...</p>
+                </div>
+                <div id="usage-error" class="hidden toast toast-error"></div>
+            </div>
+        </section>
+    </main>
+    
+    <!-- Modals -->
+    <div id="edit-modal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <h3 class="text-xl font-semibold mb-4">Modifica Ristorante</h3>
+            <form id="edit-resto-form">
+                <input type="hidden" name="docId">
+                <div class="space-y-4">
+                    <input name="nomeRistorante" placeholder="Nome Ristorante" class="form-input" required>
+                    <input name="username" placeholder="Username" class="form-input" required>
+                    <input name="email" type="email" placeholder="Email" class="form-input" required>
+                    <input name="password" type="password" placeholder="Nuova Password (lascia vuoto per mantenere)" class="form-input">
+                    <input name="logo" type="file" accept="image/*" class="form-input">
+                    <div class="flex gap-3">
+                        <button type="submit" class="btn btn-primary flex-1">Salva</button>
+                        <button type="button" onclick="closeEditModal()" class="btn btn-secondary flex-1">Annulla</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="delete-confirm-modal" class="modal-backdrop hidden">
+        <div class="modal-content text-center">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2" style="margin: 0 auto 16px;">
+                <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+            </svg>
+            <h3 class="text-xl font-semibold text-[var(--danger)] mb-2">Conferma Eliminazione</h3>
+            <p class="text-[var(--text-secondary)] mb-6">
+                Sei sicuro di voler eliminare il ristorante <strong id="delete-resto-name"></strong>?<br>
+                Questa operazione eliminerà tutti i dati associati e non può essere annullata.
+            </p>
+            <div class="flex gap-3">
+                <button id="confirm-delete-btn" class="btn btn-danger flex-1">Elimina</button>
+                <button onclick="closeDeleteConfirmModal()" class="btn btn-secondary flex-1">Annulla</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="toast-notification" class="toast">
+        <span class="toast-icon">✓</span>
+        <span id="toast-message"></span>
+    </div>
+    
+    <script type="module">
+        // Definizione corretta dell'URL del backend
+        const backendUrl = 'https://upload-beckend.onrender.com';
+
+        function showToast(message, type = "success") {
+            const toast = document.getElementById("toast-notification");
+            const toastMessage = document.getElementById("toast-message");
+            const toastIcon = toast.querySelector('.toast-icon');
+            
+            if (!toast || !toastMessage) return;
+            
+            toastMessage.textContent = message;
+            toast.className = "toast show";
+            
+            if (type === "error") {
+                toast.classList.add('toast-error');
+                toastIcon.textContent = '✕';
+            } else if (type === "info") {
+                toast.classList.add('toast-info');
+                toastIcon.textContent = 'ℹ';
+            } else {
+                toast.classList.add('toast-success');
+                toastIcon.textContent = '✓';
+            }
+            
+            setTimeout(() => { 
+                toast.classList.remove("show");
+                setTimeout(() => {
+                    toast.className = "toast hidden";
+                }, 300);
+            }, 4000);
+        }
+
+        async function fetchRestaurants() {
+            try {
+                const response = await fetch(`${backendUrl}/restaurants`);
+                if (!response.ok) {
+                    throw new Error(`Errore HTTP: ${response.status}`);
+                }
+                const restaurants = await response.json();
+                renderRestaurants(restaurants);
+            } catch (error) {
+                showToast(error.message, 'error');
+                document.getElementById('restaurants-list').innerHTML = `<p class="text-red-400 text-center">${error.message}</p>`;
+            }
+        }
+
+        function renderRestaurants(restaurants) {
+            const listContainer = document.getElementById('restaurants-list');
+            listContainer.innerHTML = '';
+            
+            if (restaurants.length === 0) {
+                listContainer.innerHTML = '<div class="empty-state"><p>Nessun ristorante registrato</p></div>';
+                return;
+            }
+            
+            // Sort by name
+            restaurants.sort((a, b) => a.nomeRistorante.localeCompare(b.nomeRistorante));
+            
+            // Create table
+            const table = document.createElement('table');
+            table.className = 'table';
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>ID</th>
+                        <th>Stato</th>
+                        <th class="text-right">Azioni</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            `;
+            
+            const tbody = table.querySelector('tbody');
+            restaurants.forEach(resto => {
+                const isHidden = resto.hidden || false;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            ${(resto.logoUrl && resto.logoUrl !== 'null') 
+                                ? `<img src="${resto.logoUrl}" alt="Logo" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">` 
+                                : `<div style="width: 32px; height: 32px; border-radius: 50%; background: var(--glass-white); display: flex; align-items: center; justify-content: center; color: var(--text-secondary); font-size: 14px;">${resto.nomeRistorante.charAt(0).toUpperCase()}</div>`}
+                            <span style="font-weight: 500;">${resto.nomeRistorante}</span>
+                        </div>
+                    </td>
+                    <td><span style="font-family: monospace; font-size: 13px;">${resto.username}</span></td>
+                    <td>${resto.email || '<span style="color: var(--text-secondary);">—</span>'}</td>
+                    <td><span style="font-family: monospace; font-size: 13px; color: var(--text-secondary);">${resto.restaurantId || resto.id.slice(0, 8)}</span></td>
+                    <td>${isHidden 
+                        ? '<span class="badge" style="background: #fee2e2; color: #dc2626; border-color: #fecaca;">Disattivato</span>'
+                        : '<span class="badge badge-success">Attivo</span>'}</td>
+                    <td>
+                        <div class="actions-cell">
+                            <button class="action-btn" onclick="viewRestaurantAnalytics('${resto.id}', '${resto.nomeRistorante.replace(/'/g, "\\'")}')">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 12H3M21 6H3M21 18H3M10 6V18"></path>
+                                </svg>
+                            </button>
+                            <button class="action-btn" onclick="toggleRestaurantStatus('${resto.id}', ${!isHidden})">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    ${isHidden ? 
+                                        '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>' :
+                                        '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>'
+                                    }
+                                </svg>
+                            </button>
+                            <button class="action-btn" onclick="openEditModal('${resto.id}', '${resto.nomeRistorante.replace(/'/g, "\\'")}', '${resto.username}', '${resto.email || ''}')">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path>
+                                    <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                </svg>
+                            </button>
+                            <button class="action-btn danger" onclick="openDeleteConfirmModal('${resto.id}', '${resto.nomeRistorante.replace(/'/g, "\\'")}')">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            
+            listContainer.appendChild(table);
+        }
+
+        // Form handlers
+        document.getElementById('add-resto-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+            const button = form.querySelector('button[type="submit"]');
+            button.disabled = true;
+            button.textContent = 'Aggiunta...';
+            try {
+                showToast('Creazione in corso...', 'info');
+                const response = await fetch(`${backendUrl}/create-restaurant`, { method: 'POST', body: formData });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Errore sconosciuto');
+                showToast('Ristorante aggiunto!', 'success');
+                fetchRestaurants();
+                form.reset();
+            } catch (error) {
+                showToast(error.message, 'error');
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Aggiungi';
+            }
+        });
+
+        document.getElementById('edit-resto-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const docId = form.docId.value;
+            const formData = new FormData(form);
+            const button = form.querySelector('button[type="submit"]');
+            
+            // Validate required fields
+            const requiredFields = ['nomeRistorante', 'username', 'email'];
+            const missingFields = [];
+            
+            requiredFields.forEach(field => {
+                const value = formData.get(field);
+                if (!value || value.trim() === '') {
+                    missingFields.push(field);
+                }
+            });
+            
+            if (missingFields.length > 0) {
+                showToast('Compila tutti i campi obbligatori', 'error');
+                return;
+            }
+            
+            // Validate email format
+            const email = formData.get('email');
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showToast('Inserisci un indirizzo email valido', 'error');
+                return;
+            }
+            
+            button.disabled = true;
+            const originalText = button.textContent;
+            button.innerHTML = `
+                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Salvataggio in corso...
+            `;
+
+            try {
+                console.log('Updating restaurant:', docId);
+                const response = await fetch(`${backendUrl}/restaurant/${docId}`, { 
+                    method: 'PUT', 
+                    body: formData 
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `Errore del server: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                showToast(result.message || 'Ristorante aggiornato con successo!', 'success');
+                fetchRestaurants(); // Refresh the list
+                closeEditModal();
+            } catch (error) {
+                console.error('Error updating restaurant:', error);
+                showToast(error.message || 'Errore durante l\'aggiornamento', 'error');
+            } finally {
+                button.disabled = false;
+                button.textContent = originalText;
+            }
+        });
+
+        // Modal functions - now properly declared as window functions
+        window.openDeleteConfirmModal = (docId, restaurantName) => {
+            const modal = document.getElementById('delete-confirm-modal');
+            document.getElementById('delete-resto-name').textContent = restaurantName;
+            
+            const confirmBtn = document.getElementById('confirm-delete-btn');
+            confirmBtn.onclick = () => deleteRestaurant(docId, restaurantName);
+            
+            modal.classList.remove('hidden');
+        };
+
+        window.closeDeleteConfirmModal = () => {
+            document.getElementById('delete-confirm-modal').classList.add('hidden');
+        };
+        
+        async function deleteRestaurant(docId, restaurantName) {
+            closeDeleteConfirmModal();
+            showToast(`Eliminazione di "${restaurantName}" in corso...`, 'info');
+            try {
+                const response = await fetch(`${backendUrl}/delete-restaurant/${docId}`, { method: 'DELETE' });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error);
+                showToast(result.message, 'success');
+                fetchRestaurants();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        window.openEditModal = (docId, name, username, email) => {
+            const modal = document.getElementById('edit-modal');
+            const form = document.getElementById('edit-resto-form');
+            form.docId.value = docId;
+            form.nomeRistorante.value = name;
+            form.username.value = username;
+            form.email.value = email || '';
+            form.password.value = '';
+            modal.classList.remove('hidden');
+        };
+
+        window.closeEditModal = () => {
+            document.getElementById('edit-modal').classList.add('hidden');
+        };
+
+        window.logout = function() {
+            localStorage.removeItem('superAdminAuthToken');
+            const currentPath = window.location.pathname;
+            const newPath = currentPath.substring(0, currentPath.lastIndexOf('/')) + '/admin-login.html';
+            window.location.href = newPath;
+        };
+        
+        // Date filter functionality - fix active button management
+        window.setStatsDateFilter = (daysBack) => {
+            const endDate = new Date();
+            const startDate = new Date();
+            
+            if (daysBack === 0) {
+                // Today
+                startDate.setHours(0, 0, 0, 0);
+                endDate.setHours(23, 59, 59, 999);
+            } else if (daysBack === 1) {
+                // Yesterday
+                startDate.setDate(startDate.getDate() - 1);
+                startDate.setHours(0, 0, 0, 0);
+                endDate.setDate(endDate.getDate() - 1);
+                endDate.setHours(23, 59, 59, 999);
+            } else {
+                // Multiple days back
+                startDate.setDate(startDate.getDate() - daysBack);
+                startDate.setHours(0, 0, 0, 0);
+                endDate.setHours(23, 59, 59, 999);
+            }
+            
+            document.getElementById('stats-start-date').value = startDate.toISOString().split('T')[0];
+            document.getElementById('stats-end-date').value = endDate.toISOString().split('T')[0];
+            
+            // Update active button - fix selector
+            document.querySelectorAll('#statistiche .tab-btn').forEach(btn => btn.classList.remove('active'));
+            const clickedButton = event?.target;
+            if (clickedButton && clickedButton.classList.contains('tab-btn')) {
+                clickedButton.classList.add('active');
+            }
+            
+            fetchAndRenderAnalytics();
+        };
+        
+        // Restaurant status toggle - FIXED
+        window.toggleRestaurantStatus = async (restaurantId, hide) => {
+            // Validate restaurantId
+            if (!restaurantId || restaurantId === 'undefined' || restaurantId === 'null') {
+                showToast('Errore: ID ristorante non valido. Impossibile modificare lo stato.', 'error');
+                return;
+            }
+            
+            console.log('Toggling restaurant status:', restaurantId, 'hide:', hide);
+            
+            try {
+                const response = await fetch(`${backendUrl}/toggle-restaurant-status/${restaurantId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ hide: hide })
+                });
+                
+                if (!response.ok) {
+                    let errorMsg = 'Errore nell\'aggiornamento dello stato.';
+                    try {
+                        const errorData = await response.json();
+                        errorMsg = errorData.error || errorMsg;
+                    } catch (e) {
+                        errorMsg = `Errore ${response.status}: ${response.statusText}`;
+                    }
+                    throw new Error(errorMsg);
+                }
+                
+                const result = await response.json();
+                showToast(result.message || (hide ? 'Ristorante disattivato' : 'Ristorante attivato'), 'success');
+                fetchRestaurants(); // Refresh the list
+            } catch (error) {
+                console.error('Toggle status error:', error);
+                showToast(error.message, 'error');
+            }
+        };
+        
+        // View restaurant analytics - FIXED
+        window.viewRestaurantAnalytics = async (restaurantId, restaurantName) => {
+            // Validate restaurantId
+            if (!restaurantId || restaurantId === 'undefined' || restaurantId === 'null') {
+                showToast('Errore: ID ristorante non valido. Impossibile caricare le analitiche.', 'error');
+                return;
+            }
+            
+            console.log('Opening analytics for:', restaurantId, restaurantName);
+            
+            // Create a modal for restaurant analytics
+            const existingModal = document.getElementById('restaurant-analytics-modal');
+            if (existingModal) existingModal.remove();
+            
+            const modal = document.createElement('div');
+            modal.id = 'restaurant-analytics-modal';
+            modal.className = 'modal-backdrop show';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 1200px; max-height: 90vh; overflow-y: auto;">
+                    <div class="modal-header">
+                        <h3 class="modal-title">Analitiche - ${restaurantName}</h3>
+                        <button onclick="this.closest('#restaurant-analytics-modal').remove()" class="modal-close">&times;</button>
+                    </div>
+                    <div class="mb-4">
+                        <div style="display: flex; gap: 4px; background: var(--glass-white); padding: 4px; border-radius: 8px; margin-bottom: 1rem;">
+                            <button class="tab-btn active" onclick="setRestaurantStatsFilter('${restaurantId}', 0)">Oggi</button>
+                            <button class="tab-btn" onclick="setRestaurantStatsFilter('${restaurantId}', 1)">Ieri</button>
+                            <button class="tab-btn" onclick="setRestaurantStatsFilter('${restaurantId}', 7)">7 giorni</button>
+                            <button class="tab-btn" onclick="setRestaurantStatsFilter('${restaurantId}', 30)">30 giorni</button>
+                            <button class="tab-btn" onclick="setRestaurantStatsFilter('${restaurantId}', 90)">90 giorni</button>
+                        </div>
+                        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 1rem;">
+                            <label style="font-weight: 500;">Da:</label>
+                            <input type="date" id="restaurant-stats-start" class="form-input" style="max-width: 150px;">
+                            <label style="font-weight: 500;">A:</label>
+                            <input type="date" id="restaurant-stats-end" class="form-input" style="max-width: 150px;">
+                            <button onclick="fetchRestaurantAnalytics('${restaurantId}')" class="btn btn-primary" style="padding: 8px 16px;">Applica</button>
+                        </div>
+                    </div>
+                    <div id="restaurant-analytics-content">
+                        <div class="text-center py-4">Caricamento...</div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            
+            // Set default to today and load analytics
+            setRestaurantStatsFilter(restaurantId, 0);
+        };
+        
+        window.setRestaurantStatsFilter = (restaurantId, daysBack) => {
+            const endDate = new Date();
+            const startDate = new Date();
+            
+            if (daysBack === 0) {
+                startDate.setHours(0, 0, 0, 0);
+                endDate.setHours(23, 59, 59, 999);
+            } else if (daysBack === 1) {
+                startDate.setDate(startDate.getDate() - 1);
+                startDate.setHours(0, 0, 0, 0);
+                endDate.setDate(endDate.getDate() - 1);
+                endDate.setHours(23, 59, 59, 999);
+            } else {
+                startDate.setDate(startDate.getDate() - daysBack);
+                startDate.setHours(0, 0, 0, 0);
+                endDate.setHours(23, 59, 59, 999);
+            }
+            
+            document.getElementById('restaurant-stats-start').value = startDate.toISOString().split('T')[0];
+            document.getElementById('restaurant-stats-end').value = endDate.toISOString().split('T')[0];
+            
+            // Update active button in modal
+            const modal = document.getElementById('restaurant-analytics-modal');
+            if (modal) {
+                modal.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+                const buttons = modal.querySelectorAll('.tab-btn');
+                const activeIndex = daysBack === 0 ? 0 : daysBack === 1 ? 1 : daysBack === 7 ? 2 : daysBack === 30 ? 3 : daysBack === 90 ? 4 : -1;
+                if (activeIndex >= 0 && buttons[activeIndex]) {
+                    buttons[activeIndex].classList.add('active');
+                }
+            }
+            
+            fetchRestaurantAnalytics(restaurantId);
+        };
+        
+        window.fetchRestaurantAnalytics = async (restaurantId) => {
+            const startDate = document.getElementById('restaurant-stats-start').value;
+            const endDate = document.getElementById('restaurant-stats-end').value;
+            const contentEl = document.getElementById('restaurant-analytics-content');
+            
+            if (!restaurantId || restaurantId === 'undefined' || restaurantId === 'null') {
+                contentEl.innerHTML = '<div style="text-align: center; color: #ef4444;">Errore: ID ristorante non trovato</div>';
+                return;
+            }
+            
+            if (!startDate || !endDate) {
+                contentEl.innerHTML = '<div style="text-align: center; color: #6b7280;">Seleziona date valide</div>';
+                return;
+            }
+            
+            try {
+                contentEl.innerHTML = '<div style="text-align: center; padding: 1rem;">Caricamento...</div>';
+                
+                const response = await fetch(`${backendUrl}/analytics/${restaurantId}?startDate=${startDate}&endDate=${endDate}`);
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: 'Errore di rete' }));
+                    throw new Error(errorData.error || 'Errore nel caricamento delle analitiche.');
+                }
+                
+                const analytics = await response.json();
+                
+                contentEl.innerHTML = `
+                    <div class="stats-grid" style="margin-bottom: 2rem;">
+                        <div class="stat-card">
+                            <div class="stat-label">Incasso Totale</div>
+                            <div class="stat-value">€${(analytics.totalRevenue || 0).toFixed(2)}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Totale Conti Pagati</div>
+                            <div class="stat-value">${analytics.totalSessions || 0}</div>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 2rem;">
+                        <div class="card">
+                            <h3 style="font-weight: 600; margin-bottom: 1rem;">Andamento Incassi</h3>
+                            <div style="position: relative; height: 320px;">
+                                <canvas id="restaurant-revenue-chart"></canvas>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <h3 style="font-weight: 600; margin-bottom: 1rem;">Numero Conti per Giorno</h3>
+                            <div style="position: relative; height: 320px;">
+                                <canvas id="restaurant-orders-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>`;
+                    
+                    // Render charts
+                    setTimeout(() => {
+                        const chartOptions = { 
+                            responsive: true, 
+                            maintainAspectRatio: false, 
+                            plugins: { 
+                                legend: { display: false } 
+                            }, 
+                            scales: { 
+                                x: { 
+                                    ticks: { color: '#666666' },
+                                    grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                                }, 
+                                y: { 
+                                    ticks: { color: '#666666' },
+                                    grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                                } 
+                            } 
+                        };
+                        
+                        const revenueCanvas = document.getElementById('restaurant-revenue-chart');
+                        if (revenueCanvas) {
+                            new Chart(revenueCanvas, {
+                                type: 'bar',
+                                data: { 
+                                    labels: analytics.dailyRevenue.map(d => d.date), 
+                                    datasets: [{ 
+                                        label: 'Incasso', 
+                                        data: analytics.dailyRevenue.map(d => d.revenue), 
+                                        backgroundColor: '#C6A969',
+                                        borderColor: '#C6A969',
+                                        borderWidth: 0
+                                    }] 
+                                },
+                                options: chartOptions
+                            });
+                        }
+                        
+                        const ordersCanvas = document.getElementById('restaurant-orders-chart');
+                        if (ordersCanvas) {
+                            new Chart(ordersCanvas, {
+                                type: 'line',
+                                data: { 
+                                    labels: analytics.dailySessions.map(d => d.date), 
+                                    datasets: [{ 
+                                        label: 'Conti', 
+                                        data: analytics.dailySessions.map(d => d.sessions), 
+                                        borderColor: '#3B82F6',
+                                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                        tension: 0.3,
+                                        fill: true,
+                                        pointBackgroundColor: '#3B82F6',
+                                        pointBorderColor: '#fff',
+                                        pointBorderWidth: 2,
+                                        pointRadius: 4,
+                                        pointHoverRadius: 6
+                                    }] 
+                                },
+                                options: chartOptions
+                            });
+                        }
+                    }, 100);
+                
+            } catch (error) {
+                console.error('Error fetching restaurant analytics:', error);
+                contentEl.innerHTML = `<div class="col-span-full text-center text-red-600">Errore: ${error.message}</div>`;
+            }
+        };
+
+        // FIXED showView function - remove conflicts
+        window.showView = (viewId) => {
+            // Update sections
+            document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
+            const targetSection = document.getElementById(viewId);
+            if (targetSection) {
+                targetSection.classList.add('active');
+            }
+            
+            // Update navigation
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            const targetNav = document.querySelector(`.nav-link[href="#${viewId}"]`);
+            if (targetNav) {
+                targetNav.classList.add('active');
+            }
+            
+            // Load data if needed
+            if (viewId === 'statistiche' && !document.getElementById('analytics-content').hasChildNodes()) {
+                const endDate = new Date();
+                const startDate = new Date();
+                startDate.setDate(endDate.getDate() - 29);
+                document.getElementById('stats-start-date').valueAsDate = startDate;
+                document.getElementById('stats-end-date').valueAsDate = endDate;
+                fetchAndRenderAnalytics();
+            }
+            if (viewId === 'utilizzo' && !document.getElementById('usage-content').hasChildNodes()) {
+                fetchAndRenderCloudinaryUsage();
+            }
+        };
+
+        window.fetchAndRenderAnalytics = async function() {
+            const loadingEl = document.getElementById('analytics-loading');
+            const contentEl = document.getElementById('analytics-content');
+            
+            loadingEl.style.display = 'block';
+            contentEl.classList.add('hidden');
+            contentEl.innerHTML = '';
+
+            const startDate = document.getElementById('stats-start-date').value;
+            const endDate = document.getElementById('stats-end-date').value;
+
+            if (!startDate || !endDate) {
+                loadingEl.innerHTML = '<p class="text-gray-400">Seleziona un intervallo di date.</p>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${backendUrl}/global-stats?startDate=${startDate}&endDate=${endDate}`);
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Errore nel caricamento delle statistiche.');
+                }
+                const stats = await response.json();
+                
+                stats.sort((a, b) => b.totalRevenue - a.totalRevenue);
+
+                if (stats.length === 0) {
+                     contentEl.innerHTML = `<p class="text-gray-500 text-center col-span-full">Nessun dato trovato per l'intervallo selezionato.</p>`;
+                } else {
+                    stats.forEach(resto => {
+                        const statsHtml = `
+                            <div class="stats-card p-4 cursor-pointer hover:bg-blue-50" onclick="window.viewRestaurantAnalytics('${resto.id || ''}', '${resto.name}')">
+                                <h3 class="font-bold text-xl mb-3 text-gray-800">${resto.name}</h3>
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+                                    <div>
+                                        <p class="text-sm text-gray-500">Incasso</p>
+                                        <p class="text-2xl font-bold text-green-600">${resto.totalRevenue.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' })}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm text-gray-500">Conti Chiusi</p>
+                                        <p class="text-2xl font-bold text-gray-800">${resto.sessionCount}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm text-gray-500">Piatti Venduti</p>
+                                        <p class="text-2xl font-bold text-gray-800">${resto.dishesSold}</p>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-blue-600 mt-2 text-center">Clicca per dettagli completi</p>
+                            </div>
+                        `;
+                        contentEl.innerHTML += statsHtml;
+                    });
+                }
+                contentEl.classList.remove('hidden');
+
+            } catch (error) {
+                showToast(error.message, 'error');
+                contentEl.innerHTML = `<p class="text-red-600 text-center col-span-full">${error.message}</p>`;
+                contentEl.classList.remove('hidden');
+            } finally {
+                loadingEl.style.display = 'none';
+            }
+        }
+
+        async function fetchAndRenderCloudinaryUsage() {
+            const loadingEl = document.getElementById('usage-loading');
+            const contentEl = document.getElementById('usage-content');
+            const errorEl = document.getElementById('usage-error');
+
+            loadingEl.style.display = 'block';
+            contentEl.classList.add('hidden');
+            errorEl.classList.add('hidden');
+
+            try {
+                const response = await fetch(`${backendUrl}/cloudinary-usage`);
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ message: 'Errore generico dal server.' }));
+                    throw new Error(errorData.error || `Errore HTTP: ${response.status}`);
+                }
+                const usage = await response.json();
+                
+                let usageHtml = `
+                    <div class="elegant-card p-4 text-center">
+                        <p class="text-sm text-blue-600">Piano Attuale: <span class="font-bold">${usage.plan}</span></p>`;
+                
+                if (usage.credits?.reset_at) {
+                    const resetDate = new Date(usage.credits.reset_at).toLocaleDateString('it-IT');
+                    usageHtml += `<p class="text-sm text-blue-600">Il piano si rinnoverà il: <span class="font-bold">${resetDate}</span></p>`;
+                }
+                usageHtml += `</div>`;
+                
+                if (usage.credits) {
+                    usageHtml += createUsageBar('Crediti', usage.credits.usage, usage.credits.limit);
+                }
+                if (usage.storage) {
+                    usageHtml += createUsageBar('Spazio di Archiviazione (GB)', usage.storage.usage / 1e9, usage.storage.limit / 1e9, 2);
+                }
+                if (usage.transformations) {
+                    usageHtml += createUsageBar('Trasformazioni Immagini', usage.transformations.usage, usage.transformations.limit);
+                }
+                if (usage.bandwidth) {
+                     usageHtml += createUsageBar('Traffico di Rete (GB)', usage.bandwidth.usage / 1e9, usage.bandwidth.limit / 1e9, 2);
+                }
+
+                contentEl.innerHTML = usageHtml;
+                contentEl.classList.remove('hidden');
+
+            } catch (error) {
+                console.error("Cloudinary Usage Error:", error);
+                errorEl.textContent = `Impossibile caricare i dati di utilizzo: ${error.message}`;
+                errorEl.classList.remove('hidden');
+            } finally {
+                loadingEl.style.display = 'none';
+            }
+        }
+
+        function createUsageBar(title, used, limit, decimals = 0) {
+            if (typeof used === 'undefined' || typeof limit === 'undefined') return '';
+            const usedFormatted = used.toLocaleString('it-IT', { maximumFractionDigits: decimals });
+            const limitFormatted = limit.toLocaleString('it-IT', { maximumFractionDigits: decimals });
+            const percentage = limit > 0 ? (used / limit) * 100 : 0;
+            
+            return `
+                <div class="elegant-card p-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="font-semibold text-gray-700">${title}</h4>
+                        <span class="text-sm font-medium text-gray-500">${usedFormatted} / ${limitFormatted}</span>
+                    </div>
+                    <div class="progress-bar h-4 w-full">
+                        <div class="progress-bar-inner" style="width: ${Math.min(100, percentage).toFixed(2)}%;"></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Initialize statistics with 30-day default
+        function initializeStatisticsDefaults() {
+            const endDate = new Date();
+            const startDate = new Date();
+            startDate.setDate(endDate.getDate() - 29); // Last 30 days
+            
+            const startInput = document.getElementById('stats-start-date');
+            const endInput = document.getElementById('stats-end-date');
+            
+            if (startInput && endInput) {
+                startInput.valueAsDate = startDate;
+                endInput.valueAsDate = endDate;
+                
+                // Set 30-day button as active
+                document.querySelectorAll('#analitiche .btn').forEach(btn => btn.classList.remove('active'));
+                const thirtyDayButton = document.querySelector('#analitiche button[onclick="setStatsDateFilter(30)"]');
+                if (thirtyDayButton) {
+                    thirtyDayButton.classList.add('active');
+                }
+                
+                // Load analytics immediately if we're already on the analytics view
+                const analyticsSection = document.getElementById('analitiche');
+                if (analyticsSection && !analyticsSection.classList.contains('hidden')) {
+                    fetchAndRenderAnalytics();
+                }
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchRestaurants();
+            initializeStatisticsDefaults();
+            showView('ristoranti');
+            
+            // Add click handlers for date filter buttons
+            document.querySelectorAll('#statistiche .tab-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const daysBack = parseInt(e.target.getAttribute('onclick').match(/\d+/)[0]);
+                    setStatsDateFilter(daysBack);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

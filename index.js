@@ -270,29 +270,6 @@ app.post('/restaurants/:docId/check-in/:reservationId', async (req, res) => {
     }
 });
 
-// ROTTA PER ORDINARE CATEGORIE
-app.post('/update-categories-order/:restaurantId', async (req, res) => {
-    const { restaurantId } = req.params;
-    const { categoriesOrder } = req.body;
-
-    if (!categoriesOrder || !Array.isArray(categoriesOrder)) {
-        return res.status(400).json({ error: 'Ordine categorie non valido.' });
-    }
-
-    try {
-        const batch = db.batch();
-        categoriesOrder.forEach((categoryId, index) => {
-            const catRef = db.collection(`ristoranti/${restaurantId}/menuCategories`).doc(categoryId);
-            batch.update(catRef, { order: index });
-        });
-        await batch.commit();
-        res.json({ success: true, message: 'Ordine categorie aggiornato!' });
-    } catch (error) {
-        console.error("Errore aggiornamento ordine categorie:", error);
-        res.status(500).json({ error: 'Errore interno del server.' });
-    }
-});
-
 // Nuovo endpoint per aggiornare una categoria (nome e stato)
 app.put('/update-category/:restaurantId/:categoryId', async (req, res) => {
     const { restaurantId, categoryId } = req.params;

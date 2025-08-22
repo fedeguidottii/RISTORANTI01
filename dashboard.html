@@ -178,7 +178,7 @@
                                             </svg>
                                         </button>
                                     </div>
-                                    <p class="text-xs text-gray-500">Trascina le categorie per riordinarle</p>
+
                                 </div>
                                 <div class="space-y-2 max-h-60 overflow-y-auto" id="category-list"></div>
                             </div>
@@ -2847,15 +2847,11 @@ console.log("[Dashboard] Module script loaded");
                 catList.innerHTML = '';
                 categoriesCache.forEach((cat, index) => {
                     const catDiv = document.createElement('div');
-                    catDiv.className = 'flex justify-between items-center bg-white border border-gray-200 p-3 rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-move';
-                    catDiv.draggable = true;
+                    catDiv.className = 'flex justify-between items-center bg-white border border-gray-200 p-3 rounded-lg shadow-sm hover:shadow-md transition-shadow';
                     catDiv.dataset.categoryId = cat.id;
                     catDiv.dataset.categoryIndex = index;
                     catDiv.innerHTML = `
                         <div class="flex items-center gap-3">
-                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-                            </svg>
                             <span class="text-gray-800 font-medium">${cat.name}</span>
                         </div>
                         <button onclick='window.deleteCategory("${cat.id}")' class="text-red-500 hover:text-red-700 hover:bg-red-50 p-1 rounded transition-colors">
@@ -2864,12 +2860,6 @@ console.log("[Dashboard] Module script loaded");
                             </svg>
                         </button>
                     `;
-                    
-                    // Drag and drop handlers
-                    catDiv.addEventListener('dragstart', handleDragStart);
-                    catDiv.addEventListener('dragover', handleDragOver);
-                    catDiv.addEventListener('drop', handleDrop);
-                    catDiv.addEventListener('dragend', handleDragEnd);
                     
                     catList.appendChild(catDiv);
                 });
@@ -3088,67 +3078,6 @@ console.log("[Dashboard] Module script loaded");
             }
         };
         
-        // Drag and drop handlers for categories
-        let draggedElement = null;
-        
-        function handleDragStart(e) {
-            draggedElement = this;
-            this.style.opacity = '0.4';
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/html', this.innerHTML);
-        }
-        
-        function handleDragOver(e) {
-            if (e.preventDefault) {
-                e.preventDefault();
-            }
-            e.dataTransfer.dropEffect = 'move';
-            
-            const afterElement = getDragAfterElement(e.currentTarget.parentElement, e.clientY);
-            if (afterElement == null) {
-                e.currentTarget.parentElement.appendChild(draggedElement);
-            } else {
-                e.currentTarget.parentElement.insertBefore(draggedElement, afterElement);
-            }
-            return false;
-        }
-        
-        function handleDrop(e) {
-            if (e.stopPropagation) {
-                e.stopPropagation();
-            }
-            return false;
-        }
-        
-        function handleDragEnd(e) {
-            this.style.opacity = '1';
-            
-            // Update order in database
-            const categoryElements = document.querySelectorAll('#category-list > div');
-            const updates = [];
-            
-            categoryElements.forEach((elem, index) => {
-                const categoryId = elem.dataset.categoryId;
-                updates.push(updateDoc(doc(db, `ristoranti/${docId}/menuCategories`, categoryId), { order: index }));
-            });
-            
-            Promise.all(updates).catch(err => handleError(err, "Errore nell'aggiornamento dell'ordine delle categorie."));
-        }
-        
-        function getDragAfterElement(container, y) {
-            const draggableElements = [...container.querySelectorAll('div[draggable="true"]:not(.dragging)')];
-            
-            return draggableElements.reduce((closest, child) => {
-                const box = child.getBoundingClientRect();
-                const offset = y - box.top - box.height / 2;
-                
-                if (offset < 0 && offset > closest.offset) {
-                    return { offset: offset, element: child };
-                } else {
-                    return closest;
-                }
-            }, { offset: Number.NEGATIVE_INFINITY }).element;
-        }
         window.applyCustomDateFilter = () => {
             const startDateVal = document.getElementById('start-date').value;
             const endDateVal = document.getElementById('end-date').value;
